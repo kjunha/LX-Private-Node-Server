@@ -4,6 +4,7 @@
 //리턴하려면 어떤식으로 구성해야 할 것인가?
 //--! 이번 프로젝트에 아직 정확한 적용방안은 없으나 스마트 계약에 구현되어있는 기능들을 API화 시킬것인가?
 //--! 주소 조회시 조회권한이 없을때 result에 false가 리턴됨 vs 주소 조회 오류시 result에 false 리턴되면서 에러메세지 반환
+//--! 이벤트 이력 조회시 SC의 require처럼 함수 호출자에 대한 제한이 없어서 추가로 보안성을 구현해야 하는가?
 //두 경우 모두 "result":false 인 현상에 대한 개선방안?
 //세부 기능성은 각각의 api 참조
 var express = require('express')
@@ -18,6 +19,22 @@ var io = require('socket.io')(server)
 var Web3 = require('web3');
 web3 = new Web3(new Web3.providers.HttpProvider('http://127.0.0.1:7545'))
 var LXServiceHost = require('./build/contracts/LXServiceHost.json')
+
+//Swagger API docs
+const swaggerJsdoc = require('swagger-jsdoc')
+const swaggerUI = require('swagger-ui-express')
+const options = {
+    swaggerDefinition:{
+        info:{
+            title: 'LX 주소혁신 프로젝트 스마트계약 RESTFUL API',
+            version: '1.0.0',
+            description: 'LX 주소혁신 프로젝트 스마트계약 RESTFUL API Swagger doc 페이지 입니다.'
+        },
+    },
+    apis: ['./app.js'],
+}
+const specs = swaggerJsdoc(options)
+app.use('/api/docs', swaggerUI.serve, swaggerUI.setup(specs))
 
 //Global fields
 var contract;
@@ -153,10 +170,12 @@ app.delete('/api/residences', (req,res) => {
                 'result':receipt.status,
                 'memberAddr':receipt.events.DeleteResidence.returnValues[0],
                 'residenceNum':receipt.events.DeleteResidence.returnValues[1],
-                'myGeonick':receipt.events.DeleteResidence.returnValues[2],
-                'gs1':receipt.events.DeleteResidence.returnValues[3],
-                'streetAddr':receipt.events.DeleteResidence.returnValues[4],
-                'gridAddr':receipt.events.DeleteResidence.returnValues[5]
+                'currentBlock':receipt.events.DeleteResidence.returnValues[2],
+                'previousBlock':receipt.events.DeleteResidence.returnValues[3],
+                'myGeonick':receipt.events.DeleteResidence.returnValues[4],
+                'gs1':receipt.events.DeleteResidence.returnValues[5],
+                'streetAddr':receipt.events.DeleteResidence.returnValues[6],
+                'gridAddr':receipt.events.DeleteResidence.returnValues[7]
             })
         })
         .on('error', (err,_) => {
@@ -190,6 +209,7 @@ app.post('/api/residences/:residenceNum/usage-consent', (req,res) => {
 //SC함수: 
 //요청예시: GET http://127.0.0.1:8080//api/residences/:residenceNum/history?(optional)fromBlock=<>&toBlock<>
 //설명: 주어진 블록범위 내의 해당 주소 고유번호에 대한 ChangeResidence 이벤트를 검색하여 배열로 반환
+//--! SC의 require처럼 함수 호출자에 대한 제한이 없어서 추가로 보안성을 구현해야 하는가?
 app.get('/api/residences/:residenceNum/history', (req,res) => {
     const fromBlock = req.query.fromBlock==undefined?0:req.query.fromBlock
     const toBlock = req.query.toBlock==undefined?'latest':req.query.toBlock

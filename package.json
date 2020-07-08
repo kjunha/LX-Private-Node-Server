@@ -14,6 +14,8 @@
     "express": "^4.17.1",
     "socket.io": "^2.3.0",
     "solc": "^0.6.10",
+    "swagger-jsdoc": "^4.0.0",
+    "swagger-ui-express": "^4.1.4",
     "web3": "^1.2.9"
   },
   "devDependencies": {
