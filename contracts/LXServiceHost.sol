@@ -59,11 +59,11 @@ contract LXServiceHost {
     //mapping(address => uint256) balances;
     
     event RegisterMember(address indexed _memberAddr, uint256 indexed _memberNum, bytes32 _blockhash);
-    event ChangeResidence(address indexed _memberAddr, uint256 indexed _residencesNum, uint256 previousResidence, string _myGeonick, string _gs1, string _streetAddress, string _gridAddress);
-    event DeleteResidence(address indexed _memberAddr, uint256 indexed _residencesNum, string _myGeonick, string _gs1, string _streetAddress, string _gridAddress);
-    event PreConsentTo(address indexed _requesterAddr, address indexed _memberAddr, uint256 _residencesNum, bool _approvalStatus);
-    event RealTimeConsentTo(address indexed _requesterAddr, address indexed _memberAddr, uint256 _residencesNum, bool _approvalStatus);
-    event RequestForAddress(address indexed _requesterAddr, uint256 _residencesNum);
+    event ChangeResidence(address indexed _memberAddr, uint256 indexed _residenceNum, uint256 indexed currentBlockNum, uint256 previousBlockNum, string _myGeonick, string _gs1, string _streetAddress, string _gridAddress);
+    event DeleteResidence(address indexed _memberAddr, uint256 indexed _residenceNum, uint256 indexed currentBlockNum, uint256 previousBlockNum, string _myGeonick, string _gs1, string _streetAddress, string _gridAddress);
+    event PreConsentTo(address indexed _requesterAddr, address indexed _memberAddr, uint256 _residenceNum, bool _approvalStatus);
+    event RealTimeConsentTo(address indexed _requesterAddr, address indexed _memberAddr, uint256 _residenceNum, bool _approvalStatus);
+    event RequestForAddress(address indexed _requesterAddr, uint256 _residenceNum);
     event UnregisterMember(address indexed _memberAddr, uint256 indexed _memberNum);
 
 
@@ -106,7 +106,7 @@ contract LXServiceHost {
     //새로운 주소지 등록
     //---파라미터
     //  _memberAddr: 회원의 SC주소
-    //  _residencesNum: 등록할 주소지의 고유한 키값
+    //  _residenceNum: 등록할 주소지의 고유한 키값
     //  _myGeonick: 마이지오닉 값
     //  _gs1: gs1값
     //  _streetAddress: 도로명 주소
@@ -115,33 +115,34 @@ contract LXServiceHost {
     //  bool: 메소드 실행 성공 / 실패 (이하 함수에서는 설명 생략)
     function registerResidence(
         address _memberAddr,
-        uint256 _residencesNum, 
+        uint256 _residenceNum, 
         string memory _myGeonick,
         string memory _gs1,
         string memory _streetAddress,
         string memory _gridAddress) public returns(bool) {
-            require(!uniqueResidencesNum[_residencesNum], "[ERR-10010] RESIDENCE_NUM_EXISTS");
+            require(!uniqueResidencesNum[_residenceNum], "[ERR-10010] RESIDENCE_NUM_EXISTS");
             require(!uniqueMyGeonick[_myGeonick], "[ERR-10011] MYGEONICK_EXISTS"); 
             require(!uniqueGS1Code[_gs1], "[ERR-10012] GS1_CODE_EXISTS");
             require(admin == msg.sender || _memberAddr == msg.sender, "[ERR-10013] ACCESS_DENIED");
             
-            uniqueResidencesNum[_residencesNum] = true;
+            uniqueResidencesNum[_residenceNum] = true;
             uniqueMyGeonick[_myGeonick] = true;
             uniqueGS1Code[_gs1] = true;
-            residences[_residencesNum] = Residence({myGeonick: _myGeonick, gs1: _gs1, streetAddress: _streetAddress, gridAddress: _gridAddress, blockNumber: block.number});
-            residencesOwner[_residencesNum] = _memberAddr;
+            uint256 blockNum = block.number;
+            residences[_residenceNum] = Residence({myGeonick: _myGeonick, gs1: _gs1, streetAddress: _streetAddress, gridAddress: _gridAddress, blockNumber: blockNum});
+            residencesOwner[_residenceNum] = _memberAddr;
             //push > save index location > increase count
-            members[_memberAddr].residencesNum.push(_residencesNum);
+            members[_memberAddr].residencesNum.push(_residenceNum);
             members[_memberAddr].residencesNumCount += 1;
-            members[_memberAddr].residencesIndex[_residencesNum] = members[_memberAddr].residencesNumCount;
-            emit ChangeResidence(_memberAddr, _residencesNum, 0, _myGeonick, _gs1, _streetAddress, _gridAddress);
+            members[_memberAddr].residencesIndex[_residenceNum] = members[_memberAddr].residencesNumCount;
+            emit ChangeResidence(_memberAddr, _residenceNum, blockNum, 0, _myGeonick, _gs1, _streetAddress, _gridAddress);
             return true;
     }
     
     //등록된 주소지 정보 업데이트
     //---파라미터
     //  _memberAddr: 회원의 SC주소
-    //  _residencesNum: 갱신할 주소지의 고유한 키값
+    //  _residenceNum: 갱신할 주소지의 고유한 키값
     //  _myGeonick: 마이지오닉 값
     //  _gs1: gs1값
     //  _streetAddress: 도로명 주소
@@ -149,32 +150,34 @@ contract LXServiceHost {
     //---리턴
     function updateResidence(
         address _memberAddr,
-        uint256 _residencesNum,
+        uint256 _residenceNum,
         string memory _myGeonick,
         string memory _gs1,
         string memory _streetAddress,
         string memory _gridAddress) public returns(bool) {
-        require(uniqueResidencesNum[_residencesNum], "[ERR-10040] RESIDENCE_NUM_NOT_EXISTS");
+        require(uniqueResidencesNum[_residenceNum], "[ERR-10040] RESIDENCE_NUM_NOT_EXISTS");
         require(!uniqueMyGeonick[_myGeonick], "[ERR-10041] MYGEONICK_EXISTS"); 
         require(!uniqueGS1Code[_gs1], "[ERR-10042] GS1_CODE_EXISTS");
         require(admin == msg.sender || _memberAddr == msg.sender, "[ERR-10043] ACCESS_DENIED");
-        require(residencesOwner[_residencesNum] ==  _memberAddr, "[ERR-10044] MEMBER_IS_NOT_OWNER");
+        require(residencesOwner[_residenceNum] ==  _memberAddr, "[ERR-10044] MEMBER_IS_NOT_OWNER");
         
         //만약 파라미터로 넘어온 값이 없을 시 기존값을 저장함
         if (keccak256(bytes(_myGeonick)) == keccak256(bytes(""))) {
-            _myGeonick = residences[_residencesNum].myGeonick;
+            _myGeonick = residences[_residenceNum].myGeonick;
         }
         if (keccak256(bytes(_gs1)) == keccak256(bytes(""))) {
-            _gs1 = residences[_residencesNum].gs1;
+            _gs1 = residences[_residenceNum].gs1;
         }
         if (keccak256(bytes(_streetAddress)) == keccak256(bytes(""))) {
-            _streetAddress = residences[_residencesNum].streetAddress;
+            _streetAddress = residences[_residenceNum].streetAddress;
         }
         if (keccak256(bytes(_gridAddress)) == keccak256(bytes(""))) {
-            _gridAddress = residences[_residencesNum].gridAddress;
+            _gridAddress = residences[_residenceNum].gridAddress;
         }
-        emit ChangeResidence(_memberAddr, _residencesNum, residences[_residencesNum].blockNumber, _myGeonick, _gs1, _streetAddress, _gridAddress);
-        residences[_residencesNum] = Residence({myGeonick: _myGeonick, gs1: _gs1, streetAddress: _streetAddress, gridAddress: _gridAddress, blockNumber:block.number});
+        uint256 previousBlockNum = residences[_residenceNum].blockNumber;
+        uint256 currentBlockNum = block.number;
+        residences[_residenceNum] = Residence({myGeonick: _myGeonick, gs1: _gs1, streetAddress: _streetAddress, gridAddress: _gridAddress, blockNumber: currentBlockNum});
+        emit ChangeResidence(_memberAddr, _residenceNum, currentBlockNum, previousBlockNum, _myGeonick, _gs1, _streetAddress, _gridAddress);
         return true;
     }
     
@@ -182,18 +185,18 @@ contract LXServiceHost {
     //---파라미터
     //  _memberAddrFrom: 기존 주소지 소유 회원의 SC주소
     //  _memberAddrTo: 소유 예정된 회원의 SC주소
-    //  _residencesNum: 주소지 고유번호
+    //  _residenceNum: 주소지 고유번호
     //---리턴
     function transferOwnershipTo(
         address _memberAddrFrom,
         address _memberAddrTo, 
-        uint256 _residencesNum) public returns(bool) {
-        require(uniqueResidencesNum[_residencesNum], "[ERR-10050] RESIDENCE_NUM_NOT_EXISTS");
+        uint256 _residenceNum) public returns(bool) {
+        require(uniqueResidencesNum[_residenceNum], "[ERR-10050] RESIDENCE_NUM_NOT_EXISTS");
         require(admin == msg.sender || _memberAddrFrom == msg.sender, "[ERR-10053] ACCESS_DENIED");
-        require(residencesOwner[_residencesNum] == _memberAddrFrom, "[ERR-10054] FROM_MEMBER_IS_NOT_OWNER");
-        require(members[_memberAddrFrom].residencesIndex[_residencesNum] != 0, "[ERR-10055] RESIDENCE_NUM_NOT_FOUND");
+        require(residencesOwner[_residenceNum] == _memberAddrFrom, "[ERR-10054] FROM_MEMBER_IS_NOT_OWNER");
+        require(members[_memberAddrFrom].residencesIndex[_residenceNum] != 0, "[ERR-10055] RESIDENCE_NUM_NOT_FOUND");
         //override and pop 구조의 배열삭제방식(삭제시 0으로 치환되는것을 방지)
-        uint256 deleteIndex = members[_memberAddrFrom].residencesIndex[_residencesNum]-1;
+        uint256 deleteIndex = members[_memberAddrFrom].residencesIndex[_residenceNum]-1;
         uint256 deleteItem = members[_memberAddrFrom].residencesNum[deleteIndex];
         uint256 lastItem = members[_memberAddrFrom].residencesNum[members[_memberAddrFrom].residencesNumCount-1];
         members[_memberAddrFrom].residencesNum[deleteIndex] = lastItem;
@@ -202,30 +205,30 @@ contract LXServiceHost {
         members[_memberAddrFrom].residencesNumCount -= 1;
         members[_memberAddrFrom].residencesNum.pop();
         //--!. 주소지 할당되지 않은 MyGeonick값 발생
-        residences[_residencesNum].streetAddress = '';
-        residences[_residencesNum].gridAddress = '';
-        residencesOwner[_residencesNum] = _memberAddrTo;
+        residences[_residenceNum].streetAddress = '';
+        residences[_residenceNum].gridAddress = '';
+        residencesOwner[_residenceNum] = _memberAddrTo;
         //새로운 소유주에게 주소 할당
-        members[_memberAddrTo].residencesNum.push(_residencesNum);
+        members[_memberAddrTo].residencesNum.push(_residenceNum);
         members[_memberAddrTo].residencesNumCount += 1;
-        members[_memberAddrTo].residencesIndex[_residencesNum] = members[_memberAddrTo].residencesNumCount;
+        members[_memberAddrTo].residencesIndex[_residenceNum] = members[_memberAddrTo].residencesNumCount;
         return true;
     } 
     
     //주소지 정보 삭제 (업데이트 됨, 세부동작사항은 README 참조)
     //---파라미터
     //  _memberAddr: 회원의 SC주소
-    //  _residencesNum: 삭제하고자 하는 주소
+    //  _residenceNum: 삭제하고자 하는 주소
     //---리턴
     function deleteResidence(
         address _memberAddr,
-        uint256 _residencesNum) public returns(bool) {
-        require(uniqueResidencesNum[_residencesNum], "[ERR-10060] RESIDENCE_NUM_NOT_EXISTS");
+        uint256 _residenceNum) public returns(bool) {
+        require(uniqueResidencesNum[_residenceNum], "[ERR-10060] RESIDENCE_NUM_NOT_EXISTS");
         require(admin == msg.sender || _memberAddr == msg.sender, "[ERR-10063] ACCESS_DENIED");
-        require(residencesOwner[_residencesNum] == _memberAddr, "[ERR-10064] MEMBER_IS_NOT_OWNER");
-        require(members[_memberAddr].residencesIndex[_residencesNum] != 0, "[ERR-10065] RESIDENCE_NUM_NOT_FOUND");
+        require(residencesOwner[_residenceNum] == _memberAddr, "[ERR-10064] MEMBER_IS_NOT_OWNER");
+        require(members[_memberAddr].residencesIndex[_residenceNum] != 0, "[ERR-10065] RESIDENCE_NUM_NOT_FOUND");
         //override and pop 구조의 배열삭제방식(삭제시 0으로 치환되는것을 방지)
-        uint256 deleteIndex = members[_memberAddr].residencesIndex[_residencesNum]-1;
+        uint256 deleteIndex = members[_memberAddr].residencesIndex[_residenceNum]-1;
         uint256 deleteItem = members[_memberAddr].residencesNum[deleteIndex];
         uint256 lastItem = members[_memberAddr].residencesNum[members[_memberAddr].residencesNumCount-1];
         members[_memberAddr].residencesNum[deleteIndex] = lastItem;
@@ -234,15 +237,18 @@ contract LXServiceHost {
         members[_memberAddr].residencesNumCount -= 1;
         members[_memberAddr].residencesNum.pop();
         //주소 고유번호의 재할당성을 위한 고유성 해제
-        uniqueResidencesNum[_residencesNum] = false;
+        uniqueResidencesNum[_residenceNum] = false;
+        //주소 삭제시 블록번호 기록
+        uint256 previousBlockNum = residences[_residenceNum].blockNumber;
+        uint256 currentBlockNum = block.number;
         //mapping 초기화
-        residencesOwner[_residencesNum] = address(0);
-        string memory _myGeonick = residences[_residencesNum].myGeonick;
-        string memory _gs1 = residences[_residencesNum].gs1;
-        string memory _streetAddress = residences[_residencesNum].streetAddress;
-        string memory _gridAddress = residences[_residencesNum].gridAddress;
-        residences[_residencesNum] = Residence({myGeonick: '', gs1: '', streetAddress: '', gridAddress: '', blockNumber:0});
-        emit DeleteResidence(_memberAddr, _residencesNum, _myGeonick, _gs1, _streetAddress, _gridAddress);
+        residencesOwner[_residenceNum] = address(0);
+        string memory _myGeonick = residences[_residenceNum].myGeonick;
+        string memory _gs1 = residences[_residenceNum].gs1;
+        string memory _streetAddress = residences[_residenceNum].streetAddress;
+        string memory _gridAddress = residences[_residenceNum].gridAddress;
+        residences[_residenceNum] = Residence({myGeonick: '', gs1: '', streetAddress: '', gridAddress: '', blockNumber:0});
+        emit DeleteResidence(_memberAddr, _residenceNum, currentBlockNum, previousBlockNum, _myGeonick, _gs1, _streetAddress, _gridAddress);
         return true;
     }
     
@@ -250,27 +256,27 @@ contract LXServiceHost {
     //---파라미터
     //  _memberAddr: 회원의 SC주소
     //  _requester 조회승인된 기업 목록에 포함시킬 기업의 SC주소
-    //  _residencesNum 조회승인될 주소의 고유번호
+    //  _residenceNum 조회승인될 주소의 고유번호
     //  _approvalStatus 조회 승인을 등록할 시 true, 조회 해제를 등록할시 false
     //---리턴
     function allowAccessTo(
         address _memberAddr,
         address _requester, 
-        uint256 _residencesNum, 
+        uint256 _residenceNum, 
         bool _approvalStatus) public returns(bool) {
-        require(uniqueResidencesNum[_residencesNum], "[ERR-10070] RESIDENCE_NUM_NOT_EXISTS");
+        require(uniqueResidencesNum[_residenceNum], "[ERR-10070] RESIDENCE_NUM_NOT_EXISTS");
         require(admin == msg.sender || _memberAddr == msg.sender, "[ERR-10073] ACCESS_DENIED");
-        require(residencesOwner[_residencesNum] == _memberAddr, "[ERR-10074] MEMBER_IS_NOT_OWNER");
+        require(residencesOwner[_residenceNum] == _memberAddr, "[ERR-10074] MEMBER_IS_NOT_OWNER");
         
-        residences[_residencesNum].accessApproved[_requester] = _approvalStatus;
-        emit PreConsentTo(_memberAddr, _requester, _residencesNum, _approvalStatus);
+        residences[_residenceNum].accessApproved[_requester] = _approvalStatus;
+        emit PreConsentTo(_memberAddr, _requester, _residenceNum, _approvalStatus);
         return true;
     }
 
     //주소지 키값으로 등록된 주소정보 조회(반환)
     //---파라미터
     //  _requestFrom 조회를 요청하는 기업의 기업 SC주소
-    //  _residencesNum 조회하고자 하는 주소의 고유번호
+    //  _residenceNum 조회하고자 하는 주소의 고유번호
     //---리턴
     //  _myGeonick: 마이지오닉 값
     //  _gs1: gs1값
@@ -278,25 +284,25 @@ contract LXServiceHost {
     //  _gridAddress: 지번주소
     function getResidence(
         address _requestFrom,
-        uint256 _residencesNum) public returns(
+        uint256 _residenceNum) public returns(
             bool _success, 
             string memory _myGeonick,
             string memory _gs1,
             string memory _streetAddress,
             string memory _gridAddress) {
-        require(uniqueResidencesNum[_residencesNum], "[ERR-10080] RESIDENCE_NUM_NOT_EXISTS");
+        require(uniqueResidencesNum[_residenceNum], "[ERR-10080] RESIDENCE_NUM_NOT_EXISTS");
         require(admin == msg.sender || _requestFrom == msg.sender, "[ERR-10083] ACCESS_DENIED");
         //만약 요청자가 사전등록 되어있거나, 본인이거나, 관리자일 시 success true를 반환하며 해당정보를 리턴함
-        if(residences[_residencesNum].accessApproved[_requestFrom] || 
-            residencesOwner[_residencesNum] == _requestFrom ||
+        if(residences[_residenceNum].accessApproved[_requestFrom] || 
+            residencesOwner[_residenceNum] == _requestFrom ||
             admin == _requestFrom) {
-            _myGeonick = residences[_residencesNum].myGeonick;
-            _gs1 = residences[_residencesNum].gs1;
-            _streetAddress = residences[_residencesNum].streetAddress;
-            _gridAddress = residences[_residencesNum].gridAddress;
+            _myGeonick = residences[_residenceNum].myGeonick;
+            _gs1 = residences[_residenceNum].gs1;
+            _streetAddress = residences[_residenceNum].streetAddress;
+            _gridAddress = residences[_residenceNum].gridAddress;
             _success = true;
             //사전등록되어 정보를 반환한 기록(이벤트)를 남김
-            emit RequestForAddress(_requestFrom, _residencesNum);
+            emit RequestForAddress(_requestFrom, _residenceNum);
         }
         //만약 요청자가 사전등록되어있지 않으면 success false를 반환하며 해당정보에 빈값을 리턴함
         else {
@@ -312,7 +318,7 @@ contract LXServiceHost {
     //실시간 정보조회 승인시 주소정보 조회(반환)
     //---파라미터
     //  _requestFrom 조회를 요청하는 기업의 기업 SC주소
-    //  _residencesNum 조회하고자 하는 주소의 고유번호
+    //  _residenceNum 조회하고자 하는 주소의 고유번호
     //---리턴
     //  _myGeonick: 마이지오닉 값
     //  _gs1: gs1값
@@ -320,31 +326,31 @@ contract LXServiceHost {
     //  _gridAddress: 지번주소
     function getRealtimeConsent(
         address _requestFrom,
-        uint256 _residencesNum) public returns(
+        uint256 _residenceNum) public returns(
             bool _success, 
             string memory _myGeonick,
             string memory _gs1,
             string memory _streetAddress,
             string memory _gridAddress) {
-        require(uniqueResidencesNum[_residencesNum], "[ERR-10100] RESIDENCE_NUM_NOT_EXISTS");
+        require(uniqueResidencesNum[_residenceNum], "[ERR-10100] RESIDENCE_NUM_NOT_EXISTS");
         require(admin == msg.sender || _requestFrom == msg.sender, "[ERR-10103] ACCESS_DENIED");
-        _myGeonick = residences[_residencesNum].myGeonick;
-        _gs1 = residences[_residencesNum].gs1;
-        _streetAddress = residences[_residencesNum].streetAddress;
-        _gridAddress = residences[_residencesNum].gridAddress;
+        _myGeonick = residences[_residenceNum].myGeonick;
+        _gs1 = residences[_residenceNum].gs1;
+        _streetAddress = residences[_residenceNum].streetAddress;
+        _gridAddress = residences[_residenceNum].gridAddress;
         _success = true;
-        emit RequestForAddress(_requestFrom, _residencesNum);
-        emit RealTimeConsentTo(_requestFrom, residencesOwner[_residencesNum], _residencesNum, true);
+        emit RequestForAddress(_requestFrom, _residenceNum);
+        emit RealTimeConsentTo(_requestFrom, residencesOwner[_residenceNum], _residenceNum, true);
     }
     //[[서비스 시스템 유지 및 관리 관련 기능]]
     //사용자에게 등록된 모든 주소지 개수 조회(관리자 및 본인)
     //---파라미터
     //  _memberAddr: 회원의 SC주소
     //---리턴
-    //  _residencesNumCount: 조회대상 유저가 가진 주소지 개수
-    function getResidenceCount(address _memberAddr) public view returns(bool _success, uint256 _residencesNumCount) {
+    //  _residenceNumCount: 조회대상 유저가 가진 주소지 개수
+    function getResidenceCount(address _memberAddr) public view returns(bool _success, uint256 _residenceNumCount) {
         require(admin == msg.sender || _memberAddr == msg.sender, "[ERR-10023] ACCESS_DENIED");
-        _residencesNumCount = members[_memberAddr].residencesNumCount ;
+        _residenceNumCount = members[_memberAddr].residencesNumCount ;
         _success = true;
     }
 

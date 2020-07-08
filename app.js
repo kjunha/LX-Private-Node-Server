@@ -99,12 +99,14 @@ app.post('/api/residences', (req,res) => {
             console.log('success: registerResidence')
             res.json({
                 'result':receipt.status,
-                'memberAddr':receipt.events.RegisterNewResidence.returnValues[0],
-                'residenceNum':receipt.events.RegisterNewResidence.returnValues[1],
-                'myGeonick':receipt.events.RegisterNewResidence.returnValues[2],
-                'gs1':receipt.events.RegisterNewResidence.returnValues[3],
-                'streetAddr':receipt.events.RegisterNewResidence.returnValues[4],
-                'gridAddr':receipt.events.RegisterNewResidence.returnValues[5]
+                'memberAddr':receipt.events.ChangeResidence.returnValues[0],
+                'residenceNum':receipt.events.ChangeResidence.returnValues[1],
+                'currentBlock':receipt.events.ChangeResidence.returnValues[2],
+                'previousBlock':receipt.events.ChangeResidence.returnValues[3],
+                'myGeonick':receipt.events.ChangeResidence.returnValues[4],
+                'gs1':receipt.events.ChangeResidence.returnValues[5],
+                'streetAddr':receipt.events.ChangeResidence.returnValues[6],
+                'gridAddr':receipt.events.ChangeResidence.returnValues[7]
             })
         })
         .on('error', (err,_) => {
@@ -123,12 +125,14 @@ app.patch('/api/residences/:residenceNum', (req,res) => {
         console.log('success: updateResidence')
         res.json({
             'result':receipt.status,
-            'memberAddr':receipt.events.UpdateResidence.returnValues[0],
-            'residenceNum':receipt.events.UpdateResidence.returnValues[1],
-            'myGeonick':receipt.events.UpdateResidence.returnValues[2],
-            'gs1':receipt.events.UpdateResidence.returnValues[3],
-            'streetAddr':receipt.events.UpdateResidence.returnValues[4],
-            'gridAddr':receipt.events.UpdateResidence.returnValues[5]
+            'memberAddr':receipt.events.ChangeResidence.returnValues[0],
+            'residenceNum':receipt.events.ChangeResidence.returnValues[1],
+            'currentBlock':receipt.events.ChangeResidence.returnValues[2],
+            'previousBlock':receipt.events.ChangeResidence.returnValues[3],
+            'myGeonick':receipt.events.ChangeResidence.returnValues[4],
+            'gs1':receipt.events.ChangeResidence.returnValues[5],
+            'streetAddr':receipt.events.ChangeResidence.returnValues[6],
+            'gridAddr':receipt.events.ChangeResidence.returnValues[7]
         })
     })
     .on('error', (err,_) => {
@@ -183,12 +187,28 @@ app.post('/api/residences/:residenceNum/usage-consent', (req,res) => {
         })
 })
 
+//SC함수: 
+//요청예시: GET http://127.0.0.1:8080//api/residences/:residenceNum/history?(optional)fromBlock=<>&toBlock<>
+//설명: 주어진 블록범위 내의 해당 주소 고유번호에 대한 ChangeResidence 이벤트를 검색하여 배열로 반환
 app.get('/api/residences/:residenceNum/history', (req,res) => {
-    contract.events.ChangeResidence({filter:{_residenceNum:req.params.residenceNum}, fromBlock:0},(err, event) => {
+    const fromBlock = req.query.fromBlock==undefined?0:req.query.fromBlock
+    const toBlock = req.query.toBlock==undefined?'latest':req.query.toBlock
+    contract.getPastEvents('ChangeResidence',{filter:{_residenceNum:[req.params.residenceNum]},fromBlock:fromBlock,toBlock:toBlock},
+    (err, event) => {
         if(event) {
-            console.log(`success: lookupHistory`)
-            console.log(`resp: ${JSON.stringify(event)}`)
-            res.send('done')
+            values = event.map((element)=>{
+                return {
+                    'memberAddr':element.returnValues[0],
+                    'residenceNum':element.returnValues[1],
+                    'currentBlock':element.returnValues[2],
+                    'previousBlock':element.returnValues[3],
+                    'myGeonick':element.returnValues[4],
+                    'gs1':element.returnValues[5],
+                    'streetAddress':element.returnValues[6],
+                    'gridAddress':element.returnValues[7]
+                }
+            })
+            res.json({'result':true, 'values':values})
 
         } else {
             console.log(`fail: lookupHistory, ${err}`)
