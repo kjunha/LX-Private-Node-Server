@@ -168,7 +168,7 @@ app.post('/api/residences/:residenceNum/usage-consent', (req,res) => {
     contract.methods.allowAccessTo(req.body.memberAddr, req.body.requestAddr, req.params.residenceNum, req.body.approvalStat)
         .send({from: admin, gas:1000000})
         .on('receipt',(receipt) => {
-            console.log('success: registerResidence')
+            console.log('success: allowAccess')
             res.json({
                 'result':receipt.status,
                 'memberAddr':receipt.events.PreConsentTo.returnValues[0],
@@ -178,9 +178,23 @@ app.post('/api/residences/:residenceNum/usage-consent', (req,res) => {
             })
         })
         .on('error', (err,_) => {
-            console.log(`fail: registerResidence, ${err}`)
+            console.log(`fail: allowAccess, ${err}`)
             res.json({'result':false, 'message':`${err}`})
         })
+})
+
+app.get('/api/residences/:residenceNum/history', (req,res) => {
+    contract.events.ChangeResidence({filter:{_residenceNum:req.params.residenceNum}, fromBlock:0},(err, event) => {
+        if(event) {
+            console.log(`success: lookupHistory`)
+            console.log(`resp: ${JSON.stringify(event)}`)
+            res.send('done')
+
+        } else {
+            console.log(`fail: lookupHistory, ${err}`)
+            res.json({'result':false, 'message':`${err}`})
+        }
+    })
 })
 
 //SC함수: getResidence
