@@ -28,13 +28,21 @@ const options = {
         info:{
             title: 'LX 주소혁신 프로젝트 스마트계약 RESTFUL API',
             version: '1.0.0',
-            description: 'LX 주소혁신 프로젝트 스마트계약 RESTFUL API Swagger doc 페이지 입니다.'
+            description: 'LX 주소혁신 프로젝트 스마트계약 RESTFUL API Swagger doc 페이지 입니다.',
+            contact: {
+                name: '김준하(way2bit)',
+                email: 'junha.kim@way2bit.com'
+            },
+        },
+        servers:{
+            url: 'http://127.0.0.1:8080/',
+            description: 'local host test server'
         },
     },
     apis: ['./app.js'],
 }
 const specs = swaggerJsdoc(options)
-app.use('/api/docs', swaggerUI.serve, swaggerUI.setup(specs))
+app.use('/api-docs', swaggerUI.serve, swaggerUI.setup(specs))
 
 //Global fields
 var contract;
@@ -59,9 +67,55 @@ server.listen(app.get('port'), async () => {
 })
 
 //Routing
-//SC함수: registerMember
-//요청예시: POST http://127.0.0.1:8080/api/members + body:{"memberPk":<>}
-//설명: 새로운 회원 등록시 registerMember함수를 실행시키고 새로운 계정을 만들어 반환함.
+
+/**
+ * SC함수: registerMember
+ * 요청예시: POST http://127.0.0.1:8080/api/members + body:{"memberPk":<>}
+ * @swagger
+ * /api/members:
+ *      post:
+ *          description: 새로운 회원 등록시 registerMember 함수를 실행시키고 새로운 계정을 만들어 반환함
+ *          tags:
+ *              - members
+ *          parameters:
+ *              - name: request body
+ *                in: body
+ *                type: object
+ *                properties:
+ *                    memberPk:
+ *                        type: integer
+ *                        default: 111
+ *                required: true
+ *          responses:
+ *              200:
+ *                description: 회원의 블록체인 주소와 개인키 반환
+ *                schema:
+ *                  type: object
+ *                  properties:
+ *                      result:
+ *                          type: boolean
+ *                          default: true
+ *                      primaryKey:
+ *                          type: integer
+ *                          default: '111'
+ *                      memberAddr:
+ *                          type: string
+ *                          default: '블록체인 주소'
+ *                      privateKey:
+ *                          type: string
+ *                          default: '블록체인 주소 개인키'
+ *              403:
+ *                  description: 스마트계약 요구조건을 만족하지 못함
+ *                  schema:
+ *                    type: object
+ *                    properties:
+ *                        result:
+ *                          type: boolean
+ *                          default: false
+ *                        message:
+ *                          type: string
+ *                          default: "오류코드와 실패사유"
+ */
 app.post('/api/members', async (req,res) => {
     try{
         //--! 매번 새로운 계정을 만들어 추가하는 방식 시도 
@@ -87,9 +141,52 @@ app.post('/api/members', async (req,res) => {
     }
 })
 
-//SC함수: deregisterMember
-//요청예시: DELETE http://127.0.0.1:8080/api/members + body:{"memberPk":<>, "memberAddr":<address>}
-//설명: 회원을 삭제할 시 등록되어있는 회원주소를 받아 deregisterMemeber 함수를 실행시키고 결과를 반환함
+/**
+ * SC함수: deregisterMember
+ * 요청예시: DELETE http://127.0.0.1:8080/api/members + body:{"memberPk":<>, "memberAddr":<address>}
+ * @swagger
+ * /api/members:
+ *      delete:
+ *          description: 회원을 삭제할 시 등록되어있는 회원주소를 받아 deregisterMemeber 함수를 실행시키고 결과를 반환함
+ *          tags:
+ *              - members
+ *          parameters:
+ *              - name: request body
+ *                in: body
+ *                type: object
+ *                properties:
+ *                    memberAddr:
+ *                        type: string
+ *                    memberPk:
+ *                        type: integer
+ *                required: true
+ *          responses:
+ *              200:
+ *                description: 회원의 블록체인 주소 반환
+ *                schema:
+ *                  type: object
+ *                  properties:
+ *                      result:
+ *                          type: boolean
+ *                          default: true
+ *                      primaryKey:
+ *                          type: integer
+ *                          default: 111
+ *                      memberAddr:
+ *                          type: string
+ *                          default: "블록체인 주소"
+ *              403:
+ *                  description: 스마트계약 요구조건을 만족하지 못함
+ *                  schema:
+ *                    type: object
+ *                    properties:
+ *                        result:
+ *                          type: boolean
+ *                          default: false
+ *                        message:
+ *                          type: string
+ *                          default: "오류코드와 실패사유"
+ */
 app.delete('/api/members', (req,res) => {
     contract.methods.deregisterMember(req.body.memberAddr,req.body.memberPk).send({from:admin})
     .on('receipt', (receipt) => {
@@ -102,13 +199,74 @@ app.delete('/api/members', (req,res) => {
     })
     .on('error', (err) => {
         console.log(`fail: registerMember, ${err}`)
-        res.json({'result':false, 'message':`${err}`})
+        res.status(403).json({'result':false, 'message':`${err}`})
     })
 })
 
-//SC함수: registerResidence
-//요청예시: POST http://127.0.0.1:8080/api/residences + body:{"memberAddr":<>, "residenceNum":<>, "myGeonick":<>, "gs1":<>, "streetAddr":<>, "gridAddr":<>}
-//설명: 새로운 주소정보를 등록시 registerResidence 함수를 실행시키고 결과값을 반환함
+/**
+ * SC함수: registerResidence
+ * 요청예시: POST http://127.0.0.1:8080/api/residences + body:{"memberAddr":<>, "residenceNum":<>, "myGeonick":<>, "gs1":<>, "streetAddr":<>, "gridAddr":<>}
+ * @swagger
+ * /api/residences:
+ *      post:
+ *          description: 새로운 주소정보를 등록시 registerResidence 함수를 실행시키고 결과값을 반환함
+ *          tags:
+ *              - residences
+ *          parameters:
+ *              - name: request body
+ *                in: body
+ *                type: object
+ *                properties:
+ *                    memberAddr:
+ *                        type: string
+ *                    residenceNum:
+ *                        type: integer
+ *                    myGeonick:
+ *                        type: string
+ *                    gs1:
+ *                        type: string
+ *                    streetAddr:
+ *                        type: string
+ *                    gridAddr:
+ *                        type: string
+ *                required: true
+ *          responses:
+ *              200:
+ *                description: 저장된 주소정보 및 기록된 블록번호 반환. 새로 생성되는 주소는 이전에 기록되었던 블록이 존재하지 않음으로 previousBlock은 0으로 반환됨
+ *                schema:
+ *                  type: object
+ *                  properties:
+ *                      result:
+ *                          type: boolean
+ *                          default: true
+ *                      memberAddr:
+ *                          type: string
+ *                      residenceNum:
+ *                          type: integer
+ *                      currentBlock:
+ *                          type: integer
+ *                      previousBlock:
+ *                          type: integer
+ *                      myGeonick:
+ *                          type: string
+ *                      gs1:
+ *                          type: string
+ *                      streetAddr:
+ *                          type: string
+ *                      gridAddr:
+ *                          type: string
+ *              403:
+ *                  description: 스마트계약 요구조건을 만족하지 못함
+ *                  schema:
+ *                    type: object
+ *                    properties:
+ *                        result:
+ *                          type: boolean
+ *                          default: false
+ *                        message:
+ *                          type: string
+ *                          default: "오류코드와 실패사유"
+ */
 app.post('/api/residences', (req,res) => {
     contract.methods.registerResidence(req.body.memberAddr, req.body.residenceNum, req.body.myGeonick, req.body.gs1, req.body.streetAddr, req.body.gridAddr)
         .send({from: admin, gas:1000000})
@@ -132,9 +290,72 @@ app.post('/api/residences', (req,res) => {
         })
 })
 
-//SC함수: updateResidence
-//요청예시: PATCH http://127.0.0.1:8080/api/residences/<residenceNum> + body:{"memberAddr":<address>, "myGeonick":<>, "gs1":<>, "streetAddr":<>, "gridAddr":<>}
-//설명: 기존 주소정보를 업데이트시 updateResidence 함수를 실행시키고 결과값을 반환함
+/**
+ * SC함수: updateResidence
+ * 요청예시: PATCH http://127.0.0.1:8080/api/residences/<residenceNum> + body:{"memberAddr":<address>, "myGeonick":<>, "gs1":<>, "streetAddr":<>, "gridAddr":<>}
+ * @swagger
+ * /api/residences/{residenceNum}:
+ *      patch:
+ *          description: 기존 주소정보를 업데이트시 updateResidence 함수를 실행시키고 결과값을 반환함
+ *          tags:
+ *              - residences
+ *          parameters:
+ *              - name: request body
+ *                in: body
+ *                type: object
+ *                properties:
+ *                    memberAddr:
+ *                        type: string
+ *                    myGeonick:
+ *                        type: string
+ *                    gs1:
+ *                        type: string
+ *                    streetAddr:
+ *                        type: string
+ *                    gridAddr:
+ *                        type: string
+ *                required: true
+ *              - name: residenceNum
+ *                in: path
+ *                type: integer
+ *                required: true
+ *          responses:
+ *              200:
+ *                description: 저장된 주소정보 및 기록된 블록번호 반환
+ *                schema:
+ *                  type: object
+ *                  properties:
+ *                      result:
+ *                          type: boolean
+ *                          default: true
+ *                      memberAddr:
+ *                          type: string
+ *                      residenceNum:
+ *                          type: integer
+ *                      currentBlock:
+ *                          type: integer
+ *                      previousBlock:
+ *                          type: integer
+ *                      myGeonick:
+ *                          type: string
+ *                      gs1:
+ *                          type: string
+ *                      streetAddr:
+ *                          type: string
+ *                      gridAddr:
+ *                          type: string
+ *              403:
+ *                  description: 스마트계약 요구조건을 만족하지 못함
+ *                  schema:
+ *                    type: object
+ *                    properties:
+ *                        result:
+ *                          type: boolean
+ *                          default: false
+ *                        message:
+ *                          type: string
+ *                          default: "오류코드와 실패사유"
+ */
 app.patch('/api/residences/:residenceNum', (req,res) => {
     contract.methods.updateResidence(req.body.memberAddr, req.params.residenceNum, req.body.myGeonick, req.body.gs1, req.body.streetAddr, req.body.gridAddr)
     .send({from: admin, gas:1000000})
@@ -158,9 +379,62 @@ app.patch('/api/residences/:residenceNum', (req,res) => {
     })
 })
 
-//SC함수: deleteResidence
-//요청예시: DELETE http://127.0.0.1:8080/api/residences + body:{"memberAddr":<address>, "residenceNum":<>}
-//설명: 기존 주소정보를 삭제시 deleteResidence 함수를 실행시키고 결과값을 반환함
+/**
+ * SC함수: deleteResidence
+ * 요청예시: DELETE http://127.0.0.1:8080/api/residences + body:{"memberAddr":<address>, "residenceNum":<>}
+ * @swagger
+ * /api/residences:
+ *      delete:
+ *          description: 기존 주소정보를 삭제시 deleteResidence 함수를 실행시키고 결과값을 반환함
+ *          tags:
+ *              - residences
+ *          parameters:
+ *              - name: request body
+ *                in: body
+ *                type: object
+ *                properties:
+ *                    memberAddr:
+ *                        type: string
+ *                    residenceNum:
+ *                        type: integer
+ *                required: true
+ *          responses:
+ *              200:
+ *                description: 삭제된 주소정보 및 삭제가 기록된 블록번호 반환. currentBlock이 삭제 이벤트가 기록된 블록의 번호임.
+ *                schema:
+ *                  type: object
+ *                  properties:
+ *                      result:
+ *                          type: boolean
+ *                          default: true
+ *                      memberAddr:
+ *                          type: string
+ *                      residenceNum:
+ *                          type: integer
+ *                      currentBlock:
+ *                          type: integer
+ *                      previousBlock:
+ *                          type: integer
+ *                      myGeonick:
+ *                          type: string
+ *                      gs1:
+ *                          type: string
+ *                      streetAddr:
+ *                          type: string
+ *                      gridAddr:
+ *                          type: string
+ *              403:
+ *                  description: 스마트계약 요구조건을 만족하지 못함
+ *                  schema:
+ *                    type: object
+ *                    properties:
+ *                        result:
+ *                          type: boolean
+ *                          default: false
+ *                        message:
+ *                          type: string
+ *                          default: "오류코드와 실패사유"
+ */
 app.delete('/api/residences', (req,res) => {
     contract.methods.deleteResidence(req.body.memberAddr, req.body.residenceNum)
         .send({from: admin, gas:1000000})
@@ -184,9 +458,61 @@ app.delete('/api/residences', (req,res) => {
         })
 })
 
-//SC함수: allowAccessTo
-//요청예시: POST http://127.0.0.1:8080/api/residences/<residenceNum>/usage-consent + body:{"memberAddr":<address>, "requestAddr":<address>, "approvalStat":<boolean>}
-//설명: 기관에 주소정보를 활용할 수 있는 권한을 부여하는 allowAccessTo 함수를 실행시키고 결과값을 반환함
+/**
+ * SC함수: allowAccessTo
+ * 요청예시: POST http://127.0.0.1:8080/api/residences/<residenceNum>/usage-consent + body:{"memberAddr":<address>, "requestAddr":<address>, "approvalStat":<boolean>}
+ * @swagger
+ * /api/residences/{residenceNum}/usage-consent:
+ *      post:
+ *          description: 기관에 주소정보를 활용할 수 있는 권한을 부여하는 allowAccessTo 함수를 실행시키고 결과값을 반환함
+ *          tags:
+ *              - residences
+ *          parameters:
+ *              - name: request body
+ *                in: body
+ *                description: 회원의 주소와 기관의 주소를 포함하며, approbalStat이 true일시 승인요청, approvalStat이 false일시 승인해제 요청임.
+ *                type: object
+ *                properties:
+ *                    memberAddr:
+ *                        type: string
+ *                    requestAddr:
+ *                        type: string
+ *                    approvalStat:
+ *                        type: boolean
+ *                required: true
+ *              - name: residenceNum
+ *                in: path
+ *                type: integer
+ *                required: true
+ *          responses:
+ *              200:
+ *                description: 승인 혹은 승인해제가 이루어진 주소의 고유번호와 주소 고유번호 소유자의 주소, 기관의 주소가 반환됨
+ *                schema:
+ *                  type: object
+ *                  properties:
+ *                      result:
+ *                          type: boolean
+ *                          default: true
+ *                      memberAddr:
+ *                          type: string
+ *                      requestAddr:
+ *                          type: string
+ *                      residenceNum:
+ *                          type: integer
+ *                      approvalStat:
+ *                          type: boolean
+ *              403:
+ *                  description: 스마트계약 요구조건을 만족하지 못함
+ *                  schema:
+ *                    type: object
+ *                    properties:
+ *                        result:
+ *                          type: boolean
+ *                          default: false
+ *                        message:
+ *                          type: string
+ *                          default: "오류코드와 실패사유"
+ */
 app.post('/api/residences/:residenceNum/usage-consent', (req,res) => {
     contract.methods.allowAccessTo(req.body.memberAddr, req.body.requestAddr, req.params.residenceNum, req.body.approvalStat)
         .send({from: admin, gas:1000000})
@@ -206,10 +532,75 @@ app.post('/api/residences/:residenceNum/usage-consent', (req,res) => {
         })
 })
 
-//SC함수: 
-//요청예시: GET http://127.0.0.1:8080//api/residences/:residenceNum/history?(optional)fromBlock=<>&toBlock<>
-//설명: 주어진 블록범위 내의 해당 주소 고유번호에 대한 ChangeResidence 이벤트를 검색하여 배열로 반환
 //--! SC의 require처럼 함수 호출자에 대한 제한이 없어서 추가로 보안성을 구현해야 하는가?
+/**
+ * SC함수: 없음(web3 event 조회 요청)
+ * 요청예시: GET http://127.0.0.1:8080//api/residences/:residenceNum/history?(optional)fromBlock=<>&toBlock<>
+ * @swagger
+ * /api/residences/{residenceNum}/history:
+ *      get:
+ *          description: 주어진 블록범위 내의 해당 주소 고유번호에 대한 ChangeResidence 이벤트를 검색하여 배열로 반환
+ *          tags:
+ *              - residences
+ *          parameters:
+ *              - name: residenceNum
+ *                in: path
+ *                type: integer
+ *                required: true
+ *              - name: fromBlock
+ *                in: query
+ *                description: 탐색을 시작할 블록의 번호. 기본값은 0
+ *                type: integer
+ *                required: false
+ *                default: 0
+ *              - name: toBlock
+ *                in: query
+ *                description: 탐색을 마칠 블록의 번호. 기본값은 'latest'
+ *                type: integer
+ *                required: false
+ *                default: 'latest'
+ *          responses:
+ *              200:
+ *                description: 주어진 범위내 주소고유번호를 가진 이벤트를 탐색하여 values 배열로 반환
+ *                schema:
+ *                  type: object
+ *                  properties:
+ *                      result:
+ *                          type: boolean
+ *                          default: true
+ *                      values:
+ *                          type: array
+ *                          items:
+ *                              type: object
+ *                              properties:
+ *                                  memberAddr:
+ *                                      type: string
+ *                                  residenceNum:
+ *                                      type: string
+ *                                  currentBlock:
+ *                                      type: integer
+ *                                  previousBlock:
+ *                                      type: integer
+ *                                  myGeonick:
+ *                                      type: string
+ *                                  gs1:
+ *                                      type: string
+ *                                  streetAddr:
+ *                                      type: string
+ *                                  gridAddr:
+ *                                      type: string
+ *              403:
+ *                  description: 스마트계약 요구조건을 만족하지 못함
+ *                  schema:
+ *                    type: object
+ *                    properties:
+ *                        result:
+ *                          type: boolean
+ *                          default: false
+ *                        message:
+ *                          type: string
+ *                          default: "오류코드와 실패사유"
+ */
 app.get('/api/residences/:residenceNum/history', (req,res) => {
     const fromBlock = req.query.fromBlock==undefined?0:req.query.fromBlock
     const toBlock = req.query.toBlock==undefined?'latest':req.query.toBlock
@@ -224,8 +615,8 @@ app.get('/api/residences/:residenceNum/history', (req,res) => {
                     'previousBlock':element.returnValues[3],
                     'myGeonick':element.returnValues[4],
                     'gs1':element.returnValues[5],
-                    'streetAddress':element.returnValues[6],
-                    'gridAddress':element.returnValues[7]
+                    'streetAddr':element.returnValues[6],
+                    'gridAddr':element.returnValues[7]
                 }
             })
             res.json({'result':true, 'values':values})
@@ -237,9 +628,53 @@ app.get('/api/residences/:residenceNum/history', (req,res) => {
     })
 })
 
-//SC함수: getResidence
-//요청예시: GET http://127.0.0.1:8080/api/residences?reqFrom=<address>&residenceNum=<residenceNum>
-//설명: 주소 고유등록번호(primaryKey)를 활용해서 주소정보를 검색함. 활용동의가 되지 않았을 시 result값이 false가 되며 나머지 값이 빈 문자열로 반환됨
+/**
+ * SC함수: getResidence
+ * 요청예시: GET http://127.0.0.1:8080/api/residences?reqFrom=<address>&residenceNum=<residenceNum>
+ * @swagger
+ * /api/residences:
+ *      get:
+ *          description: 주소 고유등록번호(primaryKey)를 활용해서 주소정보를 검색함. 활용동의가 되지 않았을 시 result값이 false가 되며 나머지 값이 빈 문자열로 반환됨
+ *          tags:
+ *              - residences
+ *          parameters:
+ *              - name: reqFrom
+ *                in: query
+ *                type: string
+ *                required: true
+ *              - name: residenceNum
+ *                in: query
+ *                type: integer
+ *                required: true
+ *          responses:
+ *              200:
+ *                description: 요청기관이 주소정보 활용 사전승인이 되어있었을 시 result에 true를 반환하며 저장된 주소정보를 반환. 사전승인이 되지 않은 경우 result에 false를 반환하며 주소정보들이 빈칸으로 반환됨
+ *                schema:
+ *                  type: object
+ *                  properties:
+ *                      result:
+ *                          type: boolean
+ *                          default: true
+ *                      myGeonick:
+ *                          type: string
+ *                      gs1:
+ *                          type: string
+ *                      streetAddr:
+ *                          type: string
+ *                      gridAddr:
+ *                          type: string
+ *              403:
+ *                  description: 스마트계약 요구조건을 만족하지 못함
+ *                  schema:
+ *                    type: object
+ *                    properties:
+ *                        result:
+ *                          type: boolean
+ *                          default: false
+ *                        message:
+ *                          type: string
+ *                          default: "오류코드와 실패사유"
+ */
 app.get('/api/residences', (req,res) => {
     contract.methods.getResidence(req.query.reqFrom, req.query.residenceNum).call({from: admin}, (err, result) => {
         if(result) {
@@ -258,10 +693,54 @@ app.get('/api/residences', (req,res) => {
     })
 })
 
-//SC함수: getRealtimeConsent
-//요청예시: GET http://127.0.0.1:8080/api/residences/real-time?reqFrom=<address>&residenceNum=<residenceNum>
-//설명: 사용자측에서 실시간 동의가 이루어졌을 시 getRealtimeConsent 함수를 실행하고 결과값을 반환함.
-//--!: 사전허가를 확인하지 않고 요청이오면 항상 해당 주소정보를 리턴함으로 사용시 보안 필요
+//--! 사전허가를 확인하지 않고 요청이오면 항상 해당 주소정보를 리턴함으로 사용시 보안 필요
+/**
+ * SC함수: getRealtimeConsent
+ * 요청예시: GET http://127.0.0.1:8080/api/residences/real-time?reqFrom=<address>&residenceNum=<residenceNum>
+ * @swagger
+ * /api/residences/real-time:
+ *      get:
+ *          description: 사용자측에서 실시간 동의가 이루어졌을 시 getRealtimeConsent 함수를 실행하고 결과값을 반환함.
+ *          tags:
+ *              - residences
+ *          parameters:
+ *              - name: reqFrom
+ *                in: query
+ *                type: string
+ *                required: true
+ *              - name: residenceNum
+ *                in: query
+ *                type: integer
+ *                required: true
+ *          responses:
+ *              200:
+ *                description: 요청기관이 사용자에게 실시간 사용동의 승인을 받은것으로 간주하고 주소정보를 리턴함
+ *                schema:
+ *                  type: object
+ *                  properties:
+ *                      result:
+ *                          type: boolean
+ *                          default: true
+ *                      myGeonick:
+ *                          type: string
+ *                      gs1:
+ *                          type: string
+ *                      streetAddr:
+ *                          type: string
+ *                      gridAddr:
+ *                          type: string
+ *              403:
+ *                  description: 스마트계약 요구조건을 만족하지 못함
+ *                  schema:
+ *                    type: object
+ *                    properties:
+ *                        result:
+ *                          type: boolean
+ *                          default: false
+ *                        message:
+ *                          type: string
+ *                          default: "오류코드와 실패사유"
+ */
 app.get('/api/residences/real-time', (req,res) => {
     contract.methods.getRealtimeConsent(req.query.reqFrom, req.query.residenceNum).call({from: admin}, (err, result) => {
         if(result) {
@@ -280,9 +759,43 @@ app.get('/api/residences/real-time', (req,res) => {
     })
 })
 
-//SC함수: getResidenceCount
-//요청예시: http://127.0.0.1:8080/api/residences/count?addr=<address>
-//설명: 사용자가 등록한 주소정보의 개수를 리턴
+/**
+ * SC함수: getResidenceCount
+ * 요청예시: GET http://127.0.0.1:8080/api/residences/count?addr=<address>
+ * @swagger
+ * /api/residences/count:
+ *      get:
+ *          description: 사용자가 등록한 주소정보의 개수를 리턴
+ *          tags:
+ *              - residences
+ *          parameters:
+ *              - name: addr
+ *                in: query
+ *                type: string
+ *                required: true
+ *          responses:
+ *              200:
+ *                description: 회원의 주소에 저장된 주소고유번호의 개수를 반환함
+ *                schema:
+ *                  type: object
+ *                  properties:
+ *                      result:
+ *                          type: boolean
+ *                          default: true
+ *                      value:
+ *                          type: integer
+ *              403:
+ *                  description: 스마트계약 요구조건을 만족하지 못함
+ *                  schema:
+ *                    type: object
+ *                    properties:
+ *                        result:
+ *                          type: boolean
+ *                          default: false
+ *                        message:
+ *                          type: string
+ *                          default: "오류코드와 실패사유"
+ */
 app.get('/api/residences/count', (req,res) => {
     contract.methods.getResidenceCount(req.query.addr).call({from: admin}, (err,result) => {
         if(result) {
@@ -293,9 +806,45 @@ app.get('/api/residences/count', (req,res) => {
     })
 })
 
-//SC함수: getAllResidenceList
-//요청예시: http://127.0.0.1:8080/api/residences/list?addr=<address>
-//설명: 사용자가 등록한 모든 주소정보의 주소고유번호를 배열로 리턴
+/**
+ * SC함수: getResidenceList
+ * 요청예시: GET http://127.0.0.1:8080/api/residences/list?addr=<address>
+ * @swagger
+ * /api/residences/list:
+ *      get:
+ *          description: 사용자가 등록한 모든 주소정보의 주소고유번호를 배열로 리턴
+ *          tags:
+ *              - residences
+ *          parameters:
+ *              - name: addr
+ *                in: query
+ *                type: string
+ *                required: true
+ *          responses:
+ *              200:
+ *                description: 회원의 주소에 저장된 주소고유번호의 전체 배열을 반환함
+ *                schema:
+ *                  type: object
+ *                  properties:
+ *                      result:
+ *                          type: boolean
+ *                          default: true
+ *                      value:
+ *                          type: array
+ *                          items:
+ *                              type: integer
+ *              403:
+ *                  description: 스마트계약 요구조건을 만족하지 못함
+ *                  schema:
+ *                    type: object
+ *                    properties:
+ *                        result:
+ *                          type: boolean
+ *                          default: false
+ *                        message:
+ *                          type: string
+ *                          default: "오류코드와 실패사유"
+ */
 app.get('/api/residences/list', (req,res) => {
     contract.methods.getResidenceList(req.query.addr).call({from: admin}, (err,result) => {
         if(result) {
@@ -306,9 +855,46 @@ app.get('/api/residences/list', (req,res) => {
     })
 })
 
-//SC함수: freeMyGeonick
-//요청예시:http://127.0.0.1:8080/api/system/freemygeonick + body: {"myGeonick":<>, "gs1":<>}
-//설명: 기존에 등록된 안심주소를 할당해제함 (재사용시)
+/**
+ * SC함수: freeMyGeonick
+ * 요청예시: POST http://127.0.0.1:8080/api/system/freemygeonick + body: {"myGeonick":<>, "gs1":<>}
+ * @swagger
+ * /api/system/freemygeonick:
+ *      post:
+ *          description: 기존에 등록된 안심주소의 고유성을 할당해제함 (재사용시)
+ *          tags:
+ *              - system
+ *          parameters:
+ *              - name: request body
+ *                in: body
+ *                type: object
+ *                properties:
+ *                    myGeonick:
+ *                        type: string
+ *                    gs1:
+ *                        type: string
+ *                required: true
+ *          responses:
+ *              200:
+ *                description: 함수 성공여부
+ *                schema:
+ *                  type: object
+ *                  properties:
+ *                      result:
+ *                          type: boolean
+ *                          default: true
+ *              403:
+ *                  description: 스마트계약 요구조건을 만족하지 못함
+ *                  schema:
+ *                    type: object
+ *                    properties:
+ *                        result:
+ *                          type: boolean
+ *                          default: false
+ *                        message:
+ *                          type: string
+ *                          default: "오류코드와 실패사유"
+ */
 app.post('/api/system/freemygeonick', (req,res) => {
     contract.methods.freeMyGeonick(req.body.myGeonick, req.body.gs1).send({from: admin})
         .on('receipt', (receipt) => {
