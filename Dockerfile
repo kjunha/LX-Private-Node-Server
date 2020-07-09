@@ -1,8 +1,11 @@
-FROM node:12
+FROM node:alpine
 WORKDIR /usr/src/app
+RUN npm install -g ganache-cli
+RUN npm install -g truffle
+RUN ganache-cli -h 0.0.0.0 -p 7545
 COPY package*.json ./
-RUN npm install -g truffle --save
 RUN npm install
+RUN truffle migrate
 COPY . .
 EXPOSE 8080
-CMD ["node", "app.js"]
+CMD ["npm", "start"]

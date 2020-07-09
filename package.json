@@ -1,11 +1,11 @@
 {
   "name": "lx-proj-server",
   "version": "1.0.0",
-  "description": "",
+  "description": "lx 주소혁신 프로젝트",
   "main": "app.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "nodemon app.js"
+    "run": "nodemon app.js",
+    "start": "node app.js"
   },
   "author": "",
   "license": "ISC",
