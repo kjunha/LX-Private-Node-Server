@@ -34,10 +34,12 @@ const options = {
                 email: 'junha.kim@way2bit.com'
             },
         },
-        servers:{
-            url: 'http://127.0.0.1:8080/',
-            description: 'local host test server'
-        },
+        servers:[
+            {
+                url: 'http://127.0.0.1:8080/',
+                description: 'local host test server'
+            }
+        ],
     },
     apis: ['./app.js'],
 }
@@ -84,7 +86,6 @@ server.listen(app.get('port'), async () => {
  *                properties:
  *                    memberPk:
  *                        type: integer
- *                        default: 111
  *                required: true
  *          responses:
  *              200:
@@ -137,12 +138,12 @@ app.post('/api/members', async (req,res) => {
             })
     } catch(err) {
         console.log(`fail: asyncAction, ${err}`)
-        res.json({'result':false, 'message':`${err}`})
+        res.status(403).json({'result':false, 'message':`${err}`})
     }
 })
 
 /**
- * SC함수: deregisterMember
+ * SC함수: unregisterMember
  * 요청예시: DELETE http://127.0.0.1:8080/api/members + body:{"memberPk":<>, "memberAddr":<address>}
  * @swagger
  * /api/members:
@@ -188,13 +189,13 @@ app.post('/api/members', async (req,res) => {
  *                          default: "오류코드와 실패사유"
  */
 app.delete('/api/members', (req,res) => {
-    contract.methods.deregisterMember(req.body.memberAddr,req.body.memberPk).send({from:admin})
+    contract.methods.unregisterMember(req.body.memberAddr,req.body.memberPk).send({from:admin})
     .on('receipt', (receipt) => {
         console.log('success: deregisterMember')
         res.json({
             'result':receipt.status,
-            'primaryKey':receipt.events.DeregisterMember.returnValues[1],
-            'memberAddr':receipt.events.DeregisterMember.returnValues[0]
+            'primaryKey':receipt.events.UnregisterMember.returnValues[1],
+            'memberAddr':receipt.events.UnregisterMember.returnValues[0]
         })
     })
     .on('error', (err) => {
@@ -286,7 +287,7 @@ app.post('/api/residences', (req,res) => {
         })
         .on('error', (err,_) => {
             console.log(`fail: registerResidence, ${err}`)
-            res.json({'result':false, 'message':`${err}`})
+            res.status(403).json({'result':false, 'message':`${err}`})
         })
 })
 
@@ -375,7 +376,7 @@ app.patch('/api/residences/:residenceNum', (req,res) => {
     })
     .on('error', (err,_) => {
         console.log(`fail: updateResidence, ${err}`)
-        res.json({'result':false, 'message':`${err}`})
+        res.status(403).json({'result':false, 'message':`${err}`})
     })
 })
 
@@ -454,7 +455,7 @@ app.delete('/api/residences', (req,res) => {
         })
         .on('error', (err,_) => {
             console.log(`fail: registerResidence, ${err}`)
-            res.json({'result':false, 'message':`${err}`})
+            res.status(403).json({'result':false, 'message':`${err}`})
         })
 })
 
@@ -528,7 +529,7 @@ app.post('/api/residences/:residenceNum/usage-consent', (req,res) => {
         })
         .on('error', (err,_) => {
             console.log(`fail: allowAccess, ${err}`)
-            res.json({'result':false, 'message':`${err}`})
+            res.status(403).json({'result':false, 'message':`${err}`})
         })
 })
 
@@ -550,13 +551,13 @@ app.post('/api/residences/:residenceNum/usage-consent', (req,res) => {
  *              - name: fromBlock
  *                in: query
  *                description: 탐색을 시작할 블록의 번호. 기본값은 0
- *                type: integer
+ *                type: string
  *                required: false
  *                default: 0
  *              - name: toBlock
  *                in: query
  *                description: 탐색을 마칠 블록의 번호. 기본값은 'latest'
- *                type: integer
+ *                type: string
  *                required: false
  *                default: 'latest'
  *          responses:
@@ -623,7 +624,7 @@ app.get('/api/residences/:residenceNum/history', (req,res) => {
 
         } else {
             console.log(`fail: lookupHistory, ${err}`)
-            res.json({'result':false, 'message':`${err}`})
+            res.status(403).json({'result':false, 'message':`${err}`})
         }
     })
 })
@@ -688,7 +689,7 @@ app.get('/api/residences', (req,res) => {
             })
         } else {
             console.log(`fail: getResidence, ${err}`)
-            res.json({'result':false, 'message':`${err}`})
+            res.status(403).json({'result':false, 'message':`${err}`})
         }
     })
 })
@@ -754,7 +755,7 @@ app.get('/api/residences/real-time', (req,res) => {
             })
         } else {
             console.log(`fail: getResidence real-time, ${err}`)
-            res.json({'result':false, 'message':`${err}`})
+            res.status(403).json({'result':false, 'message':`${err}`})
         }
     })
 })
@@ -801,7 +802,7 @@ app.get('/api/residences/count', (req,res) => {
         if(result) {
             res.json({'result':result[0], 'value':result[1]})
         } else {
-            res.json({'result':false, 'message':`${err}`})
+            res.status(403).json({'result':false, 'message':`${err}`})
         }
     })
 })
@@ -850,7 +851,7 @@ app.get('/api/residences/list', (req,res) => {
         if(result) {
             res.json({'result':result[0], 'value':result[1]})
         } else {
-            res.json({'result':false, 'message':`${err}`})
+            res.status(403).json({'result':false, 'message':`${err}`})
         }
     })
 })
@@ -901,7 +902,7 @@ app.post('/api/system/freemygeonick', (req,res) => {
             res.json({'result':receipt.status})
         })
         .on('error', (err,_) => {
-            res.json({'result':false, 'message':`${err}`})
+            res.status(403).json({'result':false, 'message':`${err}`})
         })
 })
 
