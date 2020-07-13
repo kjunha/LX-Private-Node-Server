@@ -17,7 +17,7 @@ app.set('port', process.env.PORT || 8080)
 var server = http.createServer(app)
 var io = require('socket.io')(server)
 var Web3 = require('web3');
-web3 = new Web3(new Web3.providers.HttpProvider('http://127.0.0.1:7545'))
+web3 = new Web3(new Web3.providers.HttpProvider('http://0.0.0.0:7545'))
 var LXServiceHost = require('./build/contracts/LXServiceHost.json')
 
 //Swagger API docs
@@ -52,7 +52,7 @@ var accounts;
 var admin;
 
 //Server init
-server.listen(app.get('port'), async () => {
+server.listen('0.0.0.0', app.get('port'), async () => {
     console.log('Express Server Started');
     accounts = await web3.eth.getAccounts()
     console.log(`first account: ${accounts[0]}`);
