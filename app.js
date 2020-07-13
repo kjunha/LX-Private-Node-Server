@@ -36,7 +36,7 @@ const options = {
         },
         servers:[
             {
-                url: 'http://127.0.0.1:8080/',
+                url: 'http://0.0.0.0:8080/',
                 description: 'local host test server'
             }
         ],
@@ -604,7 +604,13 @@ app.post('/api/residences/:residenceNum/usage-consent', (req,res) => {
  */
 app.get('/api/residences/:residenceNum/history', (req,res) => {
     const fromBlock = req.query.fromBlock==undefined?0:req.query.fromBlock
+    //1) current - 3600
     const toBlock = req.query.toBlock==undefined?'latest':req.query.toBlock
+    //2) to-from : 600000 over error!!!
+    //3) memberAddr Input
+    //check >> run contract 
+    //filer (if == memberAddr)
+
     contract.getPastEvents('ChangeResidence',{filter:{_residenceNum:[req.params.residenceNum]},fromBlock:fromBlock,toBlock:toBlock},
     (err, event) => {
         if(event) {
@@ -628,6 +634,11 @@ app.get('/api/residences/:residenceNum/history', (req,res) => {
         }
     })
 })
+
+
+// 60 sec * 60 min * 24 = 86,400 sec
+// 86,400 block * 7 day = 600,000 block
+
 
 /**
  * SC함수: getResidence

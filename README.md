@@ -11,6 +11,11 @@ LX 산학협력 주소혁신 프로젝트 블록체인 서버 프로토타입 �
 ** Dockerfile 빌드중... **
 <br/>
 
+깃 브랜치 정보
+---
+- master: Docker Image 빌드용 config (ip: 0.0.0.0)
+- local: 로컬머신 빌드용 config (ip: 127.0.0.1)
+
 시스템 요구사항
 ---
 - solidity compiler(solc) v.0.6.2
