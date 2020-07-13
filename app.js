@@ -52,7 +52,7 @@ var accounts;
 var admin;
 
 //Server init
-server.listen('0.0.0.0', app.get('port'), async () => {
+server.listen(app.get('port'), async () => {
     console.log('Express Server Started');
     accounts = await web3.eth.getAccounts()
     console.log(`first account: ${accounts[0]}`);
