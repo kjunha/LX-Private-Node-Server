@@ -1,11 +1,9 @@
-FROM centos:latest
-RUN mkdir -p /usr/app
-WORKDIR /usr/app
-COPY buildservice.sh .
-RUN chmod +x buildservice.sh
-RUN ./buildservice.sh
-COPY . .
+FROM node:alpine
+WORKDIR /usr/src/app
+COPY package*.json ./
 RUN npm install
-RUN truffle migrate
+RUN npm install -g  --unsafe-perm=true --allow-root truffle
+COPY . .
+RUN chmod +x initserver.sh
 EXPOSE 8080
-CMD ["forever", "app.js"]
+CMD ./initserver.sh

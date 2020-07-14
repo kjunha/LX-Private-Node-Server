@@ -9,8 +9,18 @@ services:
     ports:
       - "8545:8545"
       - "30303:30303"
-    container_name: ethereum
+    container_name: node
     working_dir: /usr/app
+  server:
+    build: .
+    tty: true
+    networks:
+        lxpnet:
+            ipv4_address: 172.19.0.3
+    ports:
+      - "8080:8080"
+    container_name: server
+    working_dir: /usr/src/app
 networks: 
     lxpnet:
         driver: bridge

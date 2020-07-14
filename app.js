@@ -17,7 +17,7 @@ app.set('port', process.env.PORT || 8080)
 var server = http.createServer(app)
 var io = require('socket.io')(server)
 var Web3 = require('web3');
-web3 = new Web3(new Web3.providers.HttpProvider('http://0.0.0.0:7545'))
+web3 = new Web3(new Web3.providers.HttpProvider('http://172.19.0.10:8545'))
 var LXServiceHost = require('./build/contracts/LXServiceHost.json')
 
 //Swagger API docs
