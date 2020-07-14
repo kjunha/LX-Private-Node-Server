@@ -297,7 +297,7 @@ app.post('/api/residences', (req,res) => {
  * @swagger
  * /api/residences/{residenceNum}:
  *      patch:
- *          description: 기존 주소정보를 업데이트시 updateResidence 함수를 실행시키고 결과값을 반환함
+ *          description: 기존 주소정보를 업데이트시 updateResidence 함수를 실행시키고 결과값을 반환함. 기존의 정보에서 변경되지 않고 유지되는 정보는 ""로 넘겨져야 함.
  *          tags:
  *              - residences
  *          parameters:
@@ -609,6 +609,7 @@ app.get('/api/residences/:residenceNum/history', (req,res) => {
     (err, event) => {
         if(event) {
             values = event.map((element)=>{
+                console.log('success: lookupHistory')
                 return {
                     'memberAddr':element.returnValues[0],
                     'residenceNum':element.returnValues[1],
