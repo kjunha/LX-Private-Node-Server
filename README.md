@@ -6,11 +6,6 @@ LX 산학협력 주소혁신 프로젝트 블록체인 서버 프로토타입 �
 개발자: 김준하 (Way2Bit)
 <br/>
 
-안내사항
----
-** Dockerfile 빌드중... **
-<br/>
-
 깃 브랜치 정보
 ---
 - master: Dockerized build config
