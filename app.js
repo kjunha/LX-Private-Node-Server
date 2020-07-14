@@ -1,12 +1,3 @@
-//LXServiceServer README
-//논의 필요사항
-//--! 매번 새로운 계정을 만들어 추가하는 방식으로 새로운 사용자를 받는중. 미리 만들어진 계정에서 사용되지 않은 계정을 골라
-//리턴하려면 어떤식으로 구성해야 할 것인가?
-//--! 이번 프로젝트에 아직 정확한 적용방안은 없으나 스마트 계약에 구현되어있는 기능들을 API화 시킬것인가?
-//--! 주소 조회시 조회권한이 없을때 result에 false가 리턴됨 vs 주소 조회 오류시 result에 false 리턴되면서 에러메세지 반환
-//--! 이벤트 이력 조회시 SC의 require처럼 함수 호출자에 대한 제한이 없어서 추가로 보안성을 구현해야 하는가?
-//두 경우 모두 "result":false 인 현상에 대한 개선방안?
-//세부 기능성은 각각의 api 참조
 var express = require('express')
 var http = require('http')
 var bodyParser = require('body-parser')
@@ -120,7 +111,7 @@ server.listen(app.get('port'), async () => {
 app.post('/api/members', async (req,res) => {
     try{
         //--! 매번 새로운 계정을 만들어 추가하는 방식 시도 
-        //--! 기존의 이미 존재하는 계정을 반환하는 알고리즘 연구 필요
+        //--! 기존의 이미 존재하는 계정을 반환하지 않는 알고리즘 연구 필요
         var newAccount = await web3.eth.accounts.create()
         contract.methods.registerMember(newAccount.address,req.body.memberPk).send({from:admin})
             .on('receipt', (receipt) => {
@@ -603,6 +594,8 @@ app.post('/api/residences/:residenceNum/usage-consent', (req,res) => {
  *                          default: "오류코드와 실패사유"
  */
 app.get('/api/residences/:residenceNum/history', (req,res) => {
+    //--!. 기본값을 전체 히스토리를 전부 검색하는 것이 아니라, 1분~하루 정도로 하고, 최대 1주일~한달로 제한을 두어 전체 히스토리가 검색되는 것을 피하는 로직
+    //--!. 스마트 계약의 함수를 이용해 함수 실행에 접근권한 부여할 것.
     const fromBlock = req.query.fromBlock==undefined?0:req.query.fromBlock
     const toBlock = req.query.toBlock==undefined?'latest':req.query.toBlock
     contract.getPastEvents('ChangeResidence',{filter:{_residenceNum:[req.params.residenceNum]},fromBlock:fromBlock,toBlock:toBlock},
