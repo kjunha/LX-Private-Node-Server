@@ -13,8 +13,8 @@ LX 산학협력 주소혁신 프로젝트 블록체인 서버 프로토타입 �
 
 깃 브랜치 정보
 ---
-- master: Docker Image 빌드용 config (ip: 0.0.0.0)
-- local: 로컬머신 빌드용 config (ip: 127.0.0.1)
+- master: Dockerized build config
+- local: local manual build config (core)
 <br/>
 
 시스템 요구사항

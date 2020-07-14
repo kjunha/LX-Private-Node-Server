@@ -134,7 +134,7 @@ app.post('/api/members', async (req,res) => {
             })
             .on('error', (err) => {
                 console.log(`fail: registerMember, ${err}`)
-                res.json({'result':false, 'message':`${err}`})
+                res.status(403).json({'result':false, 'message':`${err}`})
             })
     } catch(err) {
         console.log(`fail: asyncAction, ${err}`)
