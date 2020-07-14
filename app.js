@@ -1,12 +1,3 @@
-//LXServiceServer README
-//논의 필요사항
-//--! 매번 새로운 계정을 만들어 추가하는 방식으로 새로운 사용자를 받는중. 미리 만들어진 계정에서 사용되지 않은 계정을 골라
-//리턴하려면 어떤식으로 구성해야 할 것인가?
-//--! 이번 프로젝트에 아직 정확한 적용방안은 없으나 스마트 계약에 구현되어있는 기능들을 API화 시킬것인가?
-//--! 주소 조회시 조회권한이 없을때 result에 false가 리턴됨 vs 주소 조회 오류시 result에 false 리턴되면서 에러메세지 반환
-//--! 이벤트 이력 조회시 SC의 require처럼 함수 호출자에 대한 제한이 없어서 추가로 보안성을 구현해야 하는가?
-//두 경우 모두 "result":false 인 현상에 대한 개선방안?
-//세부 기능성은 각각의 api 참조
 var express = require('express')
 var http = require('http')
 var bodyParser = require('body-parser')
@@ -36,7 +27,7 @@ const options = {
         },
         servers:[
             {
-                url: 'http://0.0.0.0:8080/',
+                url: 'http://127.0.0.1:8080/',
                 description: 'local host test server'
             }
         ],
@@ -120,7 +111,7 @@ server.listen(app.get('port'), async () => {
 app.post('/api/members', async (req,res) => {
     try{
         //--! 매번 새로운 계정을 만들어 추가하는 방식 시도 
-        //--! 기존의 이미 존재하는 계정을 반환하는 알고리즘 연구 필요
+        //--! 기존의 이미 존재하는 계정을 반환하지 않는 알고리즘 연구 필요
         var newAccount = await web3.eth.accounts.create()
         contract.methods.registerMember(newAccount.address,req.body.memberPk).send({from:admin})
             .on('receipt', (receipt) => {
@@ -134,7 +125,7 @@ app.post('/api/members', async (req,res) => {
             })
             .on('error', (err) => {
                 console.log(`fail: registerMember, ${err}`)
-                res.status(403).json({'result':false, 'message':`${err}`})
+                res.json({'result':false, 'message':`${err}`})
             })
     } catch(err) {
         console.log(`fail: asyncAction, ${err}`)
@@ -297,7 +288,7 @@ app.post('/api/residences', (req,res) => {
  * @swagger
  * /api/residences/{residenceNum}:
  *      patch:
- *          description: 기존 주소정보를 업데이트시 updateResidence 함수를 실행시키고 결과값을 반환함
+ *          description: 기존 주소정보를 업데이트시 updateResidence 함수를 실행시키고 결과값을 반환함. 기존의 정보에서 변경되지 않고 유지되는 정보는 ""로 넘겨져야 함.
  *          tags:
  *              - residences
  *          parameters:
@@ -603,18 +594,15 @@ app.post('/api/residences/:residenceNum/usage-consent', (req,res) => {
  *                          default: "오류코드와 실패사유"
  */
 app.get('/api/residences/:residenceNum/history', (req,res) => {
+    //--!. 기본값을 전체 히스토리를 전부 검색하는 것이 아니라, 1분~하루 정도로 하고, 최대 1주일~한달로 제한을 두어 전체 히스토리가 검색되는 것을 피하는 로직
+    //--!. 스마트 계약의 함수를 이용해 함수 실행에 접근권한 부여할 것.
     const fromBlock = req.query.fromBlock==undefined?0:req.query.fromBlock
-    //1) current - 3600
     const toBlock = req.query.toBlock==undefined?'latest':req.query.toBlock
-    //2) to-from : 600000 over error!!!
-    //3) memberAddr Input
-    //check >> run contract 
-    //filer (if == memberAddr)
-
     contract.getPastEvents('ChangeResidence',{filter:{_residenceNum:[req.params.residenceNum]},fromBlock:fromBlock,toBlock:toBlock},
     (err, event) => {
         if(event) {
             values = event.map((element)=>{
+                console.log('success: lookupHistory')
                 return {
                     'memberAddr':element.returnValues[0],
                     'residenceNum':element.returnValues[1],
@@ -634,11 +622,6 @@ app.get('/api/residences/:residenceNum/history', (req,res) => {
         }
     })
 })
-
-
-// 60 sec * 60 min * 24 = 86,400 sec
-// 86,400 block * 7 day = 600,000 block
-
 
 /**
  * SC함수: getResidence
