@@ -1,0 +1,21 @@
+version: '3'
+services:
+  node:
+    build: ./geth
+    tty: true
+    networks:
+        lxpnet:
+            ipv4_address: 172.19.0.10 
+    ports:
+      - "8545:8545"
+      - "30303:30303"
+    container_name: ethereum
+    working_dir: /usr/app
+networks: 
+    lxpnet:
+        driver: bridge
+        ipam:
+            config:
+                - subnet:  172.19.0.0/24
+                
+                
