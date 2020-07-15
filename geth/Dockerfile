@@ -4,7 +4,7 @@ WORKDIR /usr/app
 COPY . .
 RUN yum update -y
 RUN yum install -y epel-release
-RUN yum install -y golang gmp-devel git make
+RUN yum install -y golang gmp-devel git
 RUN chmod +x buildgeth.sh
 RUN ./buildgeth.sh
 EXPOSE 8545
