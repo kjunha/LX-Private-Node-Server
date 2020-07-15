@@ -6,6 +6,7 @@
 //[****3]: ACCESS_DENIED / 어드민은 모든 계정의 주소에 대해 접근권한을 가지지만, 각 계정은 본인의 계정 이외의 다른 계정을 파라미터로 활용 불가능
 //[****4]: MEMBER_IS_<OWNERSHIP> / 주어진 회원주소가 주소 고유등록번호의 소유주로 등록되어있는지 확인 (residenceOwner 매핑 참조)
 //[****5]: RESIDENCE_NUM_<EXISTANCE> / 주어진 주소 고유등록번호가 회원 구조체에 저장되어있는지 확인 (Member 구조체 및 residenceIndex 참조)
+//[****6]: MEMBER_ADDR_<EXISTANCE> / 주어진 회원 블록체인 주소가 등록되어있는지 확인 (uniqueMemberAddr 매핑 참조)
 //
 //이벤트 설명
 //RegisterMember: 회원등록 이벤트
@@ -48,13 +49,14 @@ contract LXServiceHost {
     }
     
     address admin;
+    mapping(address => bool) uniqueMemberAddr;    //고유한 회원 블록체인 주소를 확인하는 맵
     mapping(uint256 => bool) uniqueResidencesNum; //고유한 주소키값(주소 고유번호)을 확인하는 맵
     mapping(string => bool) uniqueMyGeonick;      //고유한 마이지오닉을 확인하는 맵
     mapping(string => bool) uniqueGS1Code;        //고유한 gs1코드를 확인하는 맵
     mapping(uint256 => address) residencesOwner;  //주소 고유번호 - 소유주 를 연결시키는 맵
     mapping(uint256 => Residence) residences;     //주소 고유번호 - 관련정보 를 연결시키는 맵
-    mapping(address => Member) members;           //회원등록번호 - 관련정보 를 연결시키는 맵
-
+    mapping(address => Member) members;           //회원주소 - 관련정보 를 연결시키는 맵
+    
     //ERC-20을 사용한 추가적인 거래기능 구성
     //mapping(address => uint256) balances;
     
@@ -78,6 +80,7 @@ contract LXServiceHost {
     //---리턴
     // bool: 메소드 실행 성공 / 실패 (이하 함수에서는 설명 생략)
     function registerMember(address _memberAddr, uint256 _memberPk) public returns(bool) {
+        require(!uniqueMemberAddr[_memberAddr], "[ERR-10036] MEMBER_ADDR_EXIST");
         emit RegisterMember(_memberAddr, _memberPk, blockhash(block.number));
         return true;
     }
@@ -89,6 +92,7 @@ contract LXServiceHost {
     //---리턴
     function unregisterMember(address _memberAddr, uint256 _memberPk) public returns(bool) {
         require(admin == msg.sender || _memberAddr == msg.sender, "[ERR-10093] ACCESS_DENIED");
+        require(uniqueMemberAddr[_memberAddr], "[ERR-10096 MEMBER_ADDR_NOT_EXIST]");
         //remove all Residence info
         for(uint i = 0; i < members[_memberAddr].residencesNumCount; i++) {
             uint256 resNum = members[_memberAddr].residencesNum[i];
