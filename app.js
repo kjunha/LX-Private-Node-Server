@@ -13,7 +13,8 @@ var LXServiceHost = require('./build/contracts/LXServiceHost.json')
 
 //Swagger API docs
 const swaggerJsdoc = require('swagger-jsdoc')
-const swaggerUI = require('swagger-ui-express')
+const swaggerUI = require('swagger-ui-express');
+const e = require('express');
 const options = {
     swaggerDefinition:{
         info:{
@@ -550,7 +551,7 @@ app.post('/api/residences/:residenceNum/usage-consent', (req,res) => {
  *                description: 탐색을 마칠 블록의 번호. 기본값은 'latest'
  *                type: string
  *                required: false
- *                default: 'latest'
+ *                default: latest
  *          responses:
  *              200:
  *                description: 주어진 범위내 주소고유번호를 가진 이벤트를 탐색하여 values 배열로 반환
@@ -594,31 +595,57 @@ app.post('/api/residences/:residenceNum/usage-consent', (req,res) => {
  *                          default: "오류코드와 실패사유"
  */
 app.get('/api/residences/:residenceNum/history', (req,res) => {
-    //--!. 기본값을 전체 히스토리를 전부 검색하는 것이 아니라, 1분~하루 정도로 하고, 최대 1주일~한달로 제한을 두어 전체 히스토리가 검색되는 것을 피하는 로직
-    //--!. 스마트 계약의 함수를 이용해 함수 실행에 접근권한 부여할 것.
-    const fromBlock = req.query.fromBlock==undefined?0:req.query.fromBlock
-    const toBlock = req.query.toBlock==undefined?'latest':req.query.toBlock
-    contract.getPastEvents('ChangeResidence',{filter:{_residenceNum:[req.params.residenceNum]},fromBlock:fromBlock,toBlock:toBlock},
-    (err, event) => {
-        if(event) {
-            values = event.map((element)=>{
-                console.log('success: lookupHistory')
-                return {
-                    'memberAddr':element.returnValues[0],
-                    'residenceNum':element.returnValues[1],
-                    'currentBlock':element.returnValues[2],
-                    'previousBlock':element.returnValues[3],
-                    'myGeonick':element.returnValues[4],
-                    'gs1':element.returnValues[5],
-                    'streetAddr':element.returnValues[6],
-                    'gridAddr':element.returnValues[7]
+    var fromBlock
+    var toBlock
+    web3.eth.getBlockNumber().then((bn) => {
+        if(req.query.fromBlock == undefined) {
+            if(bn > 86400) {
+                fromBlock = bn - 86400
+            } else {
+                fromBlock = 0;
+            }
+        } else {
+            fromBlock = req.query.fromBlock
+        }
+        if(req.query.toBlock == undefined) {
+            if(bn > fromBlock + 86400) {
+                toBlock = fromBlock + 86400
+            } else {
+                toBlock = bn;
+            }
+        } else if(req.query.toBlock.valueOf() == 'latest'){
+            toBlock = bn
+        } else {
+            toBlock = req.query.toBlock
+        }
+        if(fromBlock <= toBlock && toBlock <= bn && toBlock - fromBlock <= 604800) {
+            contract.getPastEvents('ChangeResidence',{filter:{_residenceNum:[req.params.residenceNum]},fromBlock:fromBlock,toBlock:toBlock},
+            (err, event) => {
+                if(event) {
+                    console.log('success: lookupHistory')
+                    console.log(`DEBUG: blockRange (${fromBlock}, ${toBlock})`)
+                    values = event.map((element)=>{
+                        return {
+                            'memberAddr':element.returnValues[0],
+                            'residenceNum':element.returnValues[1],
+                            'currentBlock':element.returnValues[2],
+                            'previousBlock':element.returnValues[3],
+                            'myGeonick':element.returnValues[4],
+                            'gs1':element.returnValues[5],
+                            'streetAddr':element.returnValues[6],
+                            'gridAddr':element.returnValues[7]
+                        }
+                    })
+                    res.json({'result':true, 'values':values})
+        
+                } else {
+                    console.log(`fail: lookupHistory, ${err}`)
+                    res.status(403).json({'result':false, 'message':`${err}`})
                 }
             })
-            res.json({'result':true, 'values':values})
-
         } else {
-            console.log(`fail: lookupHistory, ${err}`)
-            res.status(403).json({'result':false, 'message':`${err}`})
+            console.log(`fail: lookupHistory, BLOCK_NUMBER_RANGE_EXCEED (${fromBlock}, ${toBlock})`)
+            res.status(403).json({'result':false, 'message':'BLOCK_NUMBER_RANGE_EXCEED'})
         }
     })
 })
