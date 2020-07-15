@@ -61,6 +61,9 @@ server.listen(app.get('port'), async () => {
 })
 
 //Routing
+app.get('/', (req,res) => {
+    res.send(`Visit http://127.0.0.1:8080/api-docs. On cloud instance, visit http://[external_ip]:8080/api-docs.`)
+})
 
 /**
  * SC함수: registerMember
