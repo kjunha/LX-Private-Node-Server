@@ -21,6 +21,17 @@ services:
       - "8080:8080"
     container_name: server
     working_dir: /usr/src/app
+  monitor:
+    build: ./monitor
+    tty: true
+    networks:
+        lxpnet:
+            ipv4_address: 172.19.0.5
+    ports:
+      - "3000:3000"
+      - "3001:3001"
+    container_name: monitor
+    working_dir: /usr/src/app
 networks: 
     lxpnet:
         driver: bridge

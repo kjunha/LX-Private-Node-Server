@@ -1,6 +1,7 @@
 var express = require('express')
 var http = require('http')
 var bodyParser = require('body-parser')
+var path = require('path');
 var app = express();
 app.use(bodyParser.urlencoded({extended:false}))
 app.use(bodyParser.json())
@@ -62,7 +63,7 @@ server.listen(app.get('port'), async () => {
 
 //Routing
 app.get('/', (req,res) => {
-    res.send(`Visit http://127.0.0.1:8080/api-docs. On cloud instance, visit http://[external_ip]:8080/api-docs.`)
+    res.sendFile(path.join(__dirname + '/public/html/index.html'))
 })
 
 /**
