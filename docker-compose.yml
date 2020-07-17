@@ -1,7 +1,7 @@
 version: '3'
 services:
   node:
-    build: ./geth
+    image: kjunha77/lxp-node
     tty: true
     networks:
         lxpnet:
@@ -12,7 +12,7 @@ services:
     container_name: node
     working_dir: /usr/app
   server:
-    build: .
+    image: kjunha77/lxp-server
     tty: true
     networks:
         lxpnet:
@@ -22,7 +22,7 @@ services:
     container_name: server
     working_dir: /usr/src/app
   monitor:
-    build: ./monitor
+    image: kjunha77/lxp-monitor
     tty: true
     networks:
         lxpnet:
