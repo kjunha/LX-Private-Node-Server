@@ -36,3 +36,44 @@ LX 산학협력 주소혁신 프로젝트 블록체인 서버 프로토타입 �
 5. npm start (nodemon을 이용한 Dev 환경) 혹은 node app.js로 서버를 실행한다.
 6. http://127.0.0.1:8080/api-docs를 방문하여 swagger api doc을 확인한다.
 <br/>
+
+모니터 적용
+---
+1. 프로젝트가 잘 작동한다면 monitor 디렉토리로 이동한다.
+2. pm2, grunt 를 npm을 이용해 전역으로 설치한다.
+```
+    npm install -g pm2 grunt
+```
+3. monitor-api 디렉토리로 이동하여 monitoring api 서버를 구동한다.
+```
+    cd monitor-api
+    npm install
+    pm2 start app.json
+    cd ..
+```
+4. netstats 디렉토리로 이동하여 grunt를 구성하고 eth-netstats 웹앱을 실행한다.
+5. netstats 웹앱은 http://127.0.0.1:3000 에서 구동된다.
+```
+    cd netstats
+    npm install
+    grunt
+    WS_SECRET=test npm start
+```
+6. netstat 실행후 콘솔에 다음과 같이 뜨고 아무것도 실행되지 않는다면, monitor-api 디렉토리로 다시 이동후 api 서버를 재시작 해준다.
+```
+    > eth-netstats@0.0.9 start /Users/junhakim/Developer/lx-proj-server/monitor/netstats
+    > node ./bin/www
+```
+위와같은 현상 발생 시
+```
+    cd /path/to/project-root/monitor/monitor-api
+    pm2 start app.json
+```
+실행 후 4,5 과정을 반복한다.
+6. explorer 구동을 원할 시, 새로운 터미널창을 열어 explorer 디렉토리로 이동한 후 웹앱을 실행한다.
+7. explorer 웹앱은 http://127.0.0.1:3001 에서 구동된다.
+```
+    cd /path/to/project-root/monitor/explorer
+    npm install
+    npm start 
+```
