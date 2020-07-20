@@ -22,7 +22,7 @@ services:
     container_name: server
     working_dir: /usr/src/app
   monitor:
-    image: kjunha77/lxp-monitor
+    build: ./monitor
     tty: true
     networks:
         lxpnet:
