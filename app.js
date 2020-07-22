@@ -9,7 +9,7 @@ app.set('port', process.env.PORT || 8080)
 var server = http.createServer(app)
 var io = require('socket.io')(server)
 var Web3 = require('web3');
-web3 = new Web3(new Web3.providers.HttpProvider('http://172.19.0.10:8545'))
+web3 = new Web3(new Web3.providers.HttpProvider('http://127.0.0.1:7545'))
 var LXServiceHost = require('./build/contracts/LXServiceHost.json')
 
 //Swagger API docs
@@ -852,7 +852,7 @@ app.get('/api/residences/:residenceNum/history', (req,res) => {
                                     }
                                 })
                                 //두 배열 합치기
-                                values.concat(values_sub)
+                                values = values.concat(values_sub)
                                 //배열을 시간순으로 정렬함
                                 values.sort((i,j) => {
                                     let comparison = 0
@@ -863,7 +863,6 @@ app.get('/api/residences/:residenceNum/history', (req,res) => {
                                     }
                                     return comparison
                                 })
-                                console.log(`DEBUG: values size -- ${value.length}`)
                                 res.json({
                                     'result':true, 
                                     'values':values, 
@@ -873,12 +872,12 @@ app.get('/api/residences/:residenceNum/history', (req,res) => {
                                     }
                                 })
                             } else {
-                                console.log(`fail: lookupHistory, ${err}`)
+                                console.log(`fail: lookupHistory, ${err_sub}`)
                                 res.status(403).json({
                                     'result':false,
                                     'status':{
                                         'code':403,
-                                        'message':`${err}`
+                                        'message':`${err_sub}`
                                     }
                                 })
                             }
