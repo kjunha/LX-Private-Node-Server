@@ -1044,6 +1044,8 @@ app.get('/api/residences/real-time', (req,res) => {
  *                      result:
  *                          type: boolean
  *                          default: true
+ *                      memberAddr:
+ *                          type: string
  *                      value:
  *                          type: integer
  *                      status:
@@ -1077,7 +1079,8 @@ app.get('/api/residences/count', (req,res) => {
     contract.methods.getResidenceCount(req.query.addr).call({from: admin}, (err,result) => {
         if(result) {
             res.json({
-                'result':result[0], 
+                'result':result[0],
+                'memberAddr': req.query.addr, 
                 'value':result[1],
                 'status':{
                     'code':200,
@@ -1119,6 +1122,8 @@ app.get('/api/residences/count', (req,res) => {
  *                      result:
  *                          type: boolean
  *                          default: true
+ *                      memberAddr:
+ *                          type: string
  *                      value:
  *                          type: array
  *                          items:
@@ -1154,7 +1159,8 @@ app.get('/api/residences/list', (req,res) => {
     contract.methods.getResidenceList(req.query.addr).call({from: admin}, (err,result) => {
         if(result) {
             res.json({
-                'result':result[0], 
+                'result':result[0],
+                'memberAddr':req.query.addr, 
                 'value':result[1],
                 'status':{
                     'code':200,
