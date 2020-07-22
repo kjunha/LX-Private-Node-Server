@@ -15,7 +15,7 @@
 //PreConsentTo: 주소정보 활용 사전승인 이벤트
 //RealTimeConsentTo: 주소정보 활용 실시간승인 이벤트
 //RequestForAddress: 요청자에 대한 주소정보 활용 이력 이벤트
-//UnregisterMember: 회원등록 해제 이벤트
+//DeregisterMember: 회원등록 해제 이벤트
 //
 //변경 및 수정사항
 //쓰던 안심주소(MyGeonick)을 업데이트 할 시 기존의 안심주소를 즉시 다른사람이 사용가능한지, 복구요청이 생길 수 있음으로 일정기간 이전에 사용된 주소를 막아둬야 할 지에 대해 정책적인 검토 필요함.
@@ -60,13 +60,13 @@ contract LXServiceHost {
     //ERC-20을 사용한 추가적인 거래기능 구성
     //mapping(address => uint256) balances;
     
-    event RegisterMember(address indexed _memberAddr, uint256 indexed _memberNum, bytes32 _blockhash);
+    event RegisterMember(address indexed _memberAddr, uint256 indexed _memberNum);
     event ChangeResidence(address indexed _memberAddr, uint256 indexed _residenceNum, uint256 indexed currentBlockNum, uint256 previousBlockNum, string _myGeonick, string _gs1, string _streetAddress, string _gridAddress);
     event DeleteResidence(address indexed _memberAddr, uint256 indexed _residenceNum, uint256 indexed currentBlockNum, uint256 previousBlockNum, string _myGeonick, string _gs1, string _streetAddress, string _gridAddress);
     event PreConsentTo(address indexed _requesterAddr, address indexed _memberAddr, uint256 _residenceNum, bool _approvalStatus);
     event RealTimeConsentTo(address indexed _requesterAddr, address indexed _memberAddr, uint256 _residenceNum, bool _approvalStatus);
     event RequestForAddress(address indexed _requesterAddr, uint256 _residenceNum);
-    event UnregisterMember(address indexed _memberAddr, uint256 indexed _memberNum);
+    event DeregisterMember(address indexed _memberAddr, uint256 indexed _memberNum);
 
 
     //생성자(constructor): 배포시 배포자를 스마트 계약 관리자로 등록
@@ -81,7 +81,7 @@ contract LXServiceHost {
     // bool: 메소드 실행 성공 / 실패 (이하 함수에서는 설명 생략)
     function registerMember(address _memberAddr, uint256 _memberPk) public returns(bool) {
         require(!uniqueMemberAddr[_memberAddr], "[ERR-10036] MEMBER_ADDR_EXIST");
-        emit RegisterMember(_memberAddr, _memberPk, blockhash(block.number));
+        emit RegisterMember(_memberAddr, _memberPk);
         return true;
     }
 
@@ -90,7 +90,7 @@ contract LXServiceHost {
     //  _memberAddr: 회원의 SC주소
     //  _memberPk: 고유한 회원등록번호
     //---리턴
-    function unregisterMember(address _memberAddr, uint256 _memberPk) public returns(bool) {
+    function deregisterMember(address _memberAddr, uint256 _memberPk) public returns(bool) {
         require(admin == msg.sender || _memberAddr == msg.sender, "[ERR-10093] ACCESS_DENIED");
         require(uniqueMemberAddr[_memberAddr], "[ERR-10096 MEMBER_ADDR_NOT_EXIST]");
         //remove all Residence info
@@ -102,7 +102,7 @@ contract LXServiceHost {
             residencesOwner[resNum] = address(0);
             residences[resNum] = Residence({myGeonick: '', gs1: '', streetAddress: '', gridAddress: '', blockNumber:0});
         }
-        emit UnregisterMember(_memberAddr, _memberPk);
+        emit DeregisterMember(_memberAddr, _memberPk);
         return true;
     }
 

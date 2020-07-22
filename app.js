@@ -101,6 +101,15 @@ app.get('/', (req,res) => {
  *                      privateKey:
  *                          type: string
  *                          default: '블록체인 주소 개인키'
+ *                      status:
+ *                          type: object
+ *                          properties:
+ *                              code:
+ *                                type: integer
+ *                                default: 200  
+ *                              message:
+ *                                type: string
+ *                                default: "OK"
  *              403:
  *                  description: 스마트계약 요구조건을 만족하지 못함
  *                  schema:
@@ -109,9 +118,15 @@ app.get('/', (req,res) => {
  *                        result:
  *                          type: boolean
  *                          default: false
- *                        message:
- *                          type: string
- *                          default: "오류코드와 실패사유"
+ *                        status:
+ *                          type: object
+ *                          properties:
+ *                              code:
+ *                                type: integer
+ *                                default: 403  
+ *                              message:
+ *                                type: string
+ *                                default: "Error Message"
  */
 app.post('/api/members', async (req,res) => {
     try{
@@ -125,7 +140,11 @@ app.post('/api/members', async (req,res) => {
                     'result':receipt.status,
                     'primaryKey':receipt.events.RegisterMember.returnValues[1],
                     'memberAddr':receipt.events.RegisterMember.returnValues[0],
-                    'privateKey':newAccount.privateKey
+                    'privateKey':newAccount.privateKey,
+                    'status':{
+                        'code':200,
+                        'message':'OK'
+                    }
                 })
             })
             .on('error', (err) => {
@@ -134,12 +153,18 @@ app.post('/api/members', async (req,res) => {
             })
     } catch(err) {
         console.log(`fail: asyncAction, ${err}`)
-        res.status(403).json({'result':false, 'message':`${err}`})
+        res.status(403).json({
+            'result':false,
+            'status':{
+                'code':403,
+                'message':`${err}`
+            }
+        })
     }
 })
 
 /**
- * SC함수: unregisterMember
+ * SC함수: deregisterMember
  * 요청예시: DELETE http://127.0.0.1:8080/api/members + body:{"memberPk":<>, "memberAddr":<address>}
  * @swagger
  * /api/members:
@@ -172,6 +197,15 @@ app.post('/api/members', async (req,res) => {
  *                      memberAddr:
  *                          type: string
  *                          default: "블록체인 주소"
+ *                      status:
+ *                          type: object
+ *                          properties:
+ *                              code:
+ *                                type: integer
+ *                                default: 200  
+ *                              message:
+ *                                type: string
+ *                                default: "OK"
  *              403:
  *                  description: 스마트계약 요구조건을 만족하지 못함
  *                  schema:
@@ -180,23 +214,39 @@ app.post('/api/members', async (req,res) => {
  *                        result:
  *                          type: boolean
  *                          default: false
- *                        message:
- *                          type: string
- *                          default: "오류코드와 실패사유"
+ *                        status:
+ *                          type: object
+ *                          properties:
+ *                              code:
+ *                                type: integer
+ *                                default: 403  
+ *                              message:
+ *                                type: string
+ *                                default: "Error Message"
  */
 app.delete('/api/members', (req,res) => {
-    contract.methods.unregisterMember(req.body.memberAddr,req.body.memberPk).send({from:admin})
+    contract.methods.deregisterMember(req.body.memberAddr,req.body.memberPk).send({from:admin})
     .on('receipt', (receipt) => {
         console.log('success: deregisterMember')
         res.json({
             'result':receipt.status,
-            'primaryKey':receipt.events.UnregisterMember.returnValues[1],
-            'memberAddr':receipt.events.UnregisterMember.returnValues[0]
+            'primaryKey':receipt.events.DeregisterMember.returnValues[1],
+            'memberAddr':receipt.events.DeregisterMember.returnValues[0],
+            'status':{
+                'code':200,
+                'message':'OK'
+            }
         })
     })
     .on('error', (err) => {
         console.log(`fail: registerMember, ${err}`)
-        res.status(403).json({'result':false, 'message':`${err}`})
+        res.status(403).json({
+            'result':false,
+            'status':{
+                'code':403,
+                'message':`${err}`
+            }
+        })
     })
 })
 
@@ -252,6 +302,15 @@ app.delete('/api/members', (req,res) => {
  *                          type: string
  *                      gridAddr:
  *                          type: string
+ *                      status:
+ *                          type: object
+ *                          properties:
+ *                              code:
+ *                                type: integer
+ *                                default: 200  
+ *                              message:
+ *                                type: string
+ *                                default: "OK"
  *              403:
  *                  description: 스마트계약 요구조건을 만족하지 못함
  *                  schema:
@@ -260,9 +319,15 @@ app.delete('/api/members', (req,res) => {
  *                        result:
  *                          type: boolean
  *                          default: false
- *                        message:
- *                          type: string
- *                          default: "오류코드와 실패사유"
+ *                        status:
+ *                          type: object
+ *                          properties:
+ *                              code:
+ *                                type: integer
+ *                                default: 403  
+ *                              message:
+ *                                type: string
+ *                                default: "Error Message"
  */
 app.post('/api/residences', (req,res) => {
     contract.methods.registerResidence(req.body.memberAddr, req.body.residenceNum, req.body.myGeonick, req.body.gs1, req.body.streetAddr, req.body.gridAddr)
@@ -278,12 +343,22 @@ app.post('/api/residences', (req,res) => {
                 'myGeonick':receipt.events.ChangeResidence.returnValues[4],
                 'gs1':receipt.events.ChangeResidence.returnValues[5],
                 'streetAddr':receipt.events.ChangeResidence.returnValues[6],
-                'gridAddr':receipt.events.ChangeResidence.returnValues[7]
+                'gridAddr':receipt.events.ChangeResidence.returnValues[7],
+                'status':{
+                    'code':200,
+                    'message':'OK'
+                }
             })
         })
         .on('error', (err,_) => {
             console.log(`fail: registerResidence, ${err}`)
-            res.status(403).json({'result':false, 'message':`${err}`})
+            res.status(403).json({
+                'result':false,
+                'status':{
+                    'code':403,
+                    'message':`${err}`
+                }
+            })
         })
 })
 
@@ -341,6 +416,15 @@ app.post('/api/residences', (req,res) => {
  *                          type: string
  *                      gridAddr:
  *                          type: string
+ *                      status:
+ *                          type: object
+ *                          properties:
+ *                              code:
+ *                                type: integer
+ *                                default: 200  
+ *                              message:
+ *                                type: string
+ *                                default: "OK"
  *              403:
  *                  description: 스마트계약 요구조건을 만족하지 못함
  *                  schema:
@@ -349,9 +433,15 @@ app.post('/api/residences', (req,res) => {
  *                        result:
  *                          type: boolean
  *                          default: false
- *                        message:
- *                          type: string
- *                          default: "오류코드와 실패사유"
+ *                        status:
+ *                          type: object
+ *                          properties:
+ *                              code:
+ *                                type: integer
+ *                                default: 403  
+ *                              message:
+ *                                type: string
+ *                                default: "Error Message"
  */
 app.patch('/api/residences/:residenceNum', (req,res) => {
     contract.methods.updateResidence(req.body.memberAddr, req.params.residenceNum, req.body.myGeonick, req.body.gs1, req.body.streetAddr, req.body.gridAddr)
@@ -367,12 +457,22 @@ app.patch('/api/residences/:residenceNum', (req,res) => {
             'myGeonick':receipt.events.ChangeResidence.returnValues[4],
             'gs1':receipt.events.ChangeResidence.returnValues[5],
             'streetAddr':receipt.events.ChangeResidence.returnValues[6],
-            'gridAddr':receipt.events.ChangeResidence.returnValues[7]
+            'gridAddr':receipt.events.ChangeResidence.returnValues[7],
+            'status':{
+                'code':200,
+                'message':'OK'
+            }
         })
     })
     .on('error', (err,_) => {
         console.log(`fail: updateResidence, ${err}`)
-        res.status(403).json({'result':false, 'message':`${err}`})
+        res.status(403).json({
+            'result':false,
+            'status':{
+                'code':403,
+                'message':`${err}`
+            }
+        })
     })
 })
 
@@ -420,6 +520,15 @@ app.patch('/api/residences/:residenceNum', (req,res) => {
  *                          type: string
  *                      gridAddr:
  *                          type: string
+ *                      status:
+ *                          type: object
+ *                          properties:
+ *                              code:
+ *                                type: integer
+ *                                default: 200  
+ *                              message:
+ *                                type: string
+ *                                default: "OK"
  *              403:
  *                  description: 스마트계약 요구조건을 만족하지 못함
  *                  schema:
@@ -428,9 +537,15 @@ app.patch('/api/residences/:residenceNum', (req,res) => {
  *                        result:
  *                          type: boolean
  *                          default: false
- *                        message:
- *                          type: string
- *                          default: "오류코드와 실패사유"
+ *                        status:
+ *                          type: object
+ *                          properties:
+ *                              code:
+ *                                type: integer
+ *                                default: 403  
+ *                              message:
+ *                                type: string
+ *                                default: "Error Message"
  */
 app.delete('/api/residences', (req,res) => {
     contract.methods.deleteResidence(req.body.memberAddr, req.body.residenceNum)
@@ -446,12 +561,22 @@ app.delete('/api/residences', (req,res) => {
                 'myGeonick':receipt.events.DeleteResidence.returnValues[4],
                 'gs1':receipt.events.DeleteResidence.returnValues[5],
                 'streetAddr':receipt.events.DeleteResidence.returnValues[6],
-                'gridAddr':receipt.events.DeleteResidence.returnValues[7]
+                'gridAddr':receipt.events.DeleteResidence.returnValues[7],
+                'status':{
+                    'code':200,
+                    'message':'OK'
+                }
             })
         })
         .on('error', (err,_) => {
             console.log(`fail: registerResidence, ${err}`)
-            res.status(403).json({'result':false, 'message':`${err}`})
+            res.status(403).json({
+                'result':false,
+                'status':{
+                    'code':403,
+                    'message':`${err}`
+                }
+            })
         })
 })
 
@@ -498,6 +623,15 @@ app.delete('/api/residences', (req,res) => {
  *                          type: integer
  *                      approvalStat:
  *                          type: boolean
+ *                      status:
+ *                          type: object
+ *                          properties:
+ *                              code:
+ *                                type: integer
+ *                                default: 200  
+ *                              message:
+ *                                type: string
+ *                                default: "OK"
  *              403:
  *                  description: 스마트계약 요구조건을 만족하지 못함
  *                  schema:
@@ -506,9 +640,15 @@ app.delete('/api/residences', (req,res) => {
  *                        result:
  *                          type: boolean
  *                          default: false
- *                        message:
- *                          type: string
- *                          default: "오류코드와 실패사유"
+ *                        status:
+ *                          type: object
+ *                          properties:
+ *                              code:
+ *                                type: integer
+ *                                default: 403  
+ *                              message:
+ *                                type: string
+ *                                default: "Error Message"
  */
 app.post('/api/residences/:residenceNum/usage-consent', (req,res) => {
     contract.methods.allowAccessTo(req.body.memberAddr, req.body.requestAddr, req.params.residenceNum, req.body.approvalStat)
@@ -521,11 +661,21 @@ app.post('/api/residences/:residenceNum/usage-consent', (req,res) => {
                 'requestAddr':receipt.events.PreConsentTo.returnValues[1],
                 'residenceNum':receipt.events.PreConsentTo.returnValues[2],
                 'approvalStat':receipt.events.PreConsentTo.returnValues[3],
+                'status':{
+                    'code':200,
+                    'message':'OK'
+                }
             })
         })
         .on('error', (err,_) => {
             console.log(`fail: allowAccess, ${err}`)
-            res.status(403).json({'result':false, 'message':`${err}`})
+            res.status(403).json({
+                'result':false,
+                'status':{
+                    'code':403,
+                    'message':`${err}`
+                }
+            })
         })
 })
 
@@ -586,6 +736,15 @@ app.post('/api/residences/:residenceNum/usage-consent', (req,res) => {
  *                                      type: string
  *                                  gridAddr:
  *                                      type: string
+ *                                  status:
+ *                                      type: object
+ *                                      properties:
+ *                                          code:
+ *                                            type: integer
+ *                                            default: 200  
+ *                                          message:
+ *                                            type: string
+ *                                            default: "OK"
  *              403:
  *                  description: 스마트계약 요구조건을 만족하지 못함
  *                  schema:
@@ -594,9 +753,15 @@ app.post('/api/residences/:residenceNum/usage-consent', (req,res) => {
  *                        result:
  *                          type: boolean
  *                          default: false
- *                        message:
- *                          type: string
- *                          default: "오류코드와 실패사유"
+ *                        status:
+ *                          type: object
+ *                          properties:
+ *                              code:
+ *                                type: integer
+ *                                default: 403  
+ *                              message:
+ *                                type: string
+ *                                default: "Error Message"
  */
 app.get('/api/residences/:residenceNum/history', (req,res) => {
     var fromBlock
@@ -640,16 +805,35 @@ app.get('/api/residences/:residenceNum/history', (req,res) => {
                             'gridAddr':element.returnValues[7]
                         }
                     })
-                    res.json({'result':true, 'values':values})
+                    res.json({
+                        'result':true, 
+                        'values':values, 
+                        'status':{
+                            'code':200,
+                            'message':'OK'
+                        }
+                    })
         
                 } else {
                     console.log(`fail: lookupHistory, ${err}`)
-                    res.status(403).json({'result':false, 'message':`${err}`})
+                    res.status(403).json({
+                        'result':false,
+                        'status':{
+                            'code':403,
+                            'message':`${err}`
+                        }
+                    })
                 }
             })
         } else {
             console.log(`fail: lookupHistory, BLOCK_NUMBER_RANGE_EXCEED (${fromBlock}, ${toBlock})`)
-            res.status(403).json({'result':false, 'message':'BLOCK_NUMBER_RANGE_EXCEED'})
+            res.status(403).json({
+                'result':false, 
+                'status':{
+                    'code':403,
+                    'message':'BLOCK_NUMBER_RANGE_EXCEED'
+                }
+            })
         }
     })
 })
@@ -689,6 +873,15 @@ app.get('/api/residences/:residenceNum/history', (req,res) => {
  *                          type: string
  *                      gridAddr:
  *                          type: string
+ *                      status:
+ *                          type: object
+ *                          properties:
+ *                              code:
+ *                                type: integer
+ *                                default: 200  
+ *                              message:
+ *                                type: string
+ *                                default: "OK"
  *              403:
  *                  description: 스마트계약 요구조건을 만족하지 못함
  *                  schema:
@@ -697,9 +890,15 @@ app.get('/api/residences/:residenceNum/history', (req,res) => {
  *                        result:
  *                          type: boolean
  *                          default: false
- *                        message:
- *                          type: string
- *                          default: "오류코드와 실패사유"
+ *                        status:
+ *                          type: object
+ *                          properties:
+ *                              code:
+ *                                type: integer
+ *                                default: 403  
+ *                              message:
+ *                                type: string
+ *                                default: "Error Message"
  */
 app.get('/api/residences', (req,res) => {
     contract.methods.getResidence(req.query.reqFrom, req.query.residenceNum).call({from: admin}, (err, result) => {
@@ -710,11 +909,21 @@ app.get('/api/residences', (req,res) => {
                 'myGeonick':result[1],
                 'gs1':result[2],
                 'streetAddr':result[3],
-                'gridAddr':result[4]
+                'gridAddr':result[4],
+                'status':{
+                    'code':200,
+                    'message':'OK'
+                }
             })
         } else {
             console.log(`fail: getResidence, ${err}`)
-            res.status(403).json({'result':false, 'message':`${err}`})
+            res.status(403).json({
+                'result':false, 
+                'status':{
+                    'code':403,
+                    'message':`${err}`
+                }
+            })
         }
     })
 })
@@ -755,6 +964,15 @@ app.get('/api/residences', (req,res) => {
  *                          type: string
  *                      gridAddr:
  *                          type: string
+ *                      status:
+ *                          type: object
+ *                          properties:
+ *                              code:
+ *                                type: integer
+ *                                default: 200  
+ *                              message:
+ *                                type: string
+ *                                default: "OK"
  *              403:
  *                  description: 스마트계약 요구조건을 만족하지 못함
  *                  schema:
@@ -763,9 +981,15 @@ app.get('/api/residences', (req,res) => {
  *                        result:
  *                          type: boolean
  *                          default: false
- *                        message:
- *                          type: string
- *                          default: "오류코드와 실패사유"
+ *                        status:
+ *                          type: object
+ *                          properties:
+ *                              code:
+ *                                type: integer
+ *                                default: 403  
+ *                              message:
+ *                                type: string
+ *                                default: "Error Message"
  */
 app.get('/api/residences/real-time', (req,res) => {
     contract.methods.getRealtimeConsent(req.query.reqFrom, req.query.residenceNum).call({from: admin}, (err, result) => {
@@ -776,11 +1000,21 @@ app.get('/api/residences/real-time', (req,res) => {
                 'myGeonick':result[1],
                 'gs1':result[2],
                 'streetAddr':result[3],
-                'gridAddr':result[4]
+                'gridAddr':result[4],
+                'status':{
+                    'code':200,
+                    'message':'OK'
+                }
             })
         } else {
             console.log(`fail: getResidence real-time, ${err}`)
-            res.status(403).json({'result':false, 'message':`${err}`})
+            res.status(403).json({
+                'result':false, 
+                'status':{
+                    'code':403,
+                    'message':`${err}`
+                }
+            })
         }
     })
 })
@@ -810,6 +1044,15 @@ app.get('/api/residences/real-time', (req,res) => {
  *                          default: true
  *                      value:
  *                          type: integer
+ *                      status:
+ *                          type: object
+ *                          properties:
+ *                              code:
+ *                                type: integer
+ *                                default: 200  
+ *                              message:
+ *                                type: string
+ *                                default: "OK"
  *              403:
  *                  description: 스마트계약 요구조건을 만족하지 못함
  *                  schema:
@@ -818,16 +1061,35 @@ app.get('/api/residences/real-time', (req,res) => {
  *                        result:
  *                          type: boolean
  *                          default: false
- *                        message:
- *                          type: string
- *                          default: "오류코드와 실패사유"
+ *                        status:
+ *                          type: object
+ *                          properties:
+ *                              code:
+ *                                type: integer
+ *                                default: 403  
+ *                              message:
+ *                                type: string
+ *                                default: "Error Message"
  */
 app.get('/api/residences/count', (req,res) => {
     contract.methods.getResidenceCount(req.query.addr).call({from: admin}, (err,result) => {
         if(result) {
-            res.json({'result':result[0], 'value':result[1]})
+            res.json({
+                'result':result[0], 
+                'value':result[1],
+                'status':{
+                    'code':200,
+                    'message':'OK'
+                }
+            })
         } else {
-            res.status(403).json({'result':false, 'message':`${err}`})
+            res.status(403).json({
+                'result':false,
+                'status':{
+                    'code':403,
+                    'message':`${err}`
+                }
+            })
         }
     })
 })
@@ -859,6 +1121,15 @@ app.get('/api/residences/count', (req,res) => {
  *                          type: array
  *                          items:
  *                              type: integer
+ *                      status:
+ *                          type: object
+ *                          properties:
+ *                              code:
+ *                                type: integer
+ *                                default: 200  
+ *                              message:
+ *                                type: string
+ *                                default: "OK"
  *              403:
  *                  description: 스마트계약 요구조건을 만족하지 못함
  *                  schema:
@@ -867,16 +1138,35 @@ app.get('/api/residences/count', (req,res) => {
  *                        result:
  *                          type: boolean
  *                          default: false
- *                        message:
- *                          type: string
- *                          default: "오류코드와 실패사유"
+ *                        status:
+ *                          type: object
+ *                          properties:
+ *                              code:
+ *                                type: integer
+ *                                default: 403  
+ *                              message:
+ *                                type: string
+ *                                default: "Error Message"
  */
 app.get('/api/residences/list', (req,res) => {
     contract.methods.getResidenceList(req.query.addr).call({from: admin}, (err,result) => {
         if(result) {
-            res.json({'result':result[0], 'value':result[1]})
+            res.json({
+                'result':result[0], 
+                'value':result[1],
+                'status':{
+                    'code':200,
+                    'message':'OK'
+                }
+            })
         } else {
-            res.status(403).json({'result':false, 'message':`${err}`})
+            res.status(403).json({
+                'result':false,
+                'status':{
+                    'code':403,
+                    'message':`${err}`
+                }
+            })
         }
     })
 })
@@ -909,6 +1199,15 @@ app.get('/api/residences/list', (req,res) => {
  *                      result:
  *                          type: boolean
  *                          default: true
+ *                      status:
+ *                          type: object
+ *                          properties:
+ *                              code:
+ *                                type: integer
+ *                                default: 200  
+ *                              message:
+ *                                type: string
+ *                                default: "OK"
  *              403:
  *                  description: 스마트계약 요구조건을 만족하지 못함
  *                  schema:
@@ -917,16 +1216,34 @@ app.get('/api/residences/list', (req,res) => {
  *                        result:
  *                          type: boolean
  *                          default: false
- *                        message:
- *                          type: string
- *                          default: "오류코드와 실패사유"
+ *                        status:
+ *                          type: object
+ *                          properties:
+ *                              code:
+ *                                type: integer
+ *                                default: 403  
+ *                              message:
+ *                                type: string
+ *                                default: "Error Message"
  */
 app.post('/api/system/freemygeonick', (req,res) => {
     contract.methods.freeMyGeonick(req.body.myGeonick, req.body.gs1).send({from: admin})
         .on('receipt', (receipt) => {
-            res.json({'result':receipt.status})
+            res.json({
+                'result':receipt.status,
+                'status':{
+                    'code':200,
+                    'message':'OK'
+                }
+            })
         })
         .on('error', (err,_) => {
-            res.status(403).json({'result':false, 'message':`${err}`})
+            res.status(403).json({
+                'result':false, 
+                'status':{
+                    'code':403,
+                    'message':`${err}`
+                }
+            })
         })
 })
