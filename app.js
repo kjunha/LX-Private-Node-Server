@@ -838,7 +838,7 @@ app.get('/api/residences/:residenceNum/history', (req,res) => {
                     contract.getPastEvents('DeleteResidence', {filter:{_residenceNum:[req.params.residenceNum]},fromBlock:fromBlock,toBlock:toBlock},
                         (err_sub, event_sub) => {
                             if(event_sub) {
-                                var values_sub = event_sub.map((element) => {
+                                values_sub = event_sub.map((element) => {
                                     return {
                                         'memberAddr':element.returnValues[0],
                                         'residenceNum':element.returnValues[1],
@@ -852,13 +852,15 @@ app.get('/api/residences/:residenceNum/history', (req,res) => {
                                     }
                                 })
                                 //두 배열 합치기
-                                values.concat(values_sub)
+                                values = values.concat(values_sub)
                                 //배열을 시간순으로 정렬함
                                 values.sort((i,j) => {
                                     let comparison = 0
-                                    if(i.currentBlock > j.currentBlock) {
+                                    let numI = parseInt(i.currentBlock)
+                                    let numJ = parseInt(j.currentBlock)
+                                    if(numI > numJ) {
                                         comparison = 1
-                                    } else if(i.currentBlock < j.currentBlock) {
+                                    } else if(numI < numJ) {
                                         comparison = -1
                                     }
                                     return comparison
@@ -872,12 +874,12 @@ app.get('/api/residences/:residenceNum/history', (req,res) => {
                                     }
                                 })
                             } else {
-                                console.log(`fail: lookupHistory, ${err}`)
+                                console.log(`fail: lookupHistory, ${err_sub}`)
                                 res.status(403).json({
                                     'result':false,
                                     'status':{
                                         'code':403,
-                                        'message':`${err}`
+                                        'message':`${err_sub}`
                                     }
                                 })
                             }
