@@ -1022,6 +1022,7 @@ app.get('/api/residences/real-time', (req,res) => {
     contract.methods.getRealtimeConsent(req.query.reqFrom, req.query.residenceNum).call({from: admin}, (err, result) => {
         if(result) {
             console.log(`success: getResidence real-time`)
+            contract.methods.getRealtimeConsent(req.query.reqFrom, req.query.residenceNum).send({from: admin, gas:1000000})
             res.json({
                 'result':result[0],
                 'myGeonick':result[1],
