@@ -480,7 +480,7 @@ app.patch('/api/residences/:residenceNum', (req,res) => {
  * SC함수: deleteResidence
  * 요청예시: DELETE http://127.0.0.1:8080/api/residences + body:{"memberAddr":<address>, "residenceNum":<>}
  * @swagger
- * /api/residences:
+ * /api/residences/{residenceNum}:
  *      delete:
  *          description: 기존 주소정보를 삭제시 deleteResidence 함수를 실행시키고 결과값을 반환함
  *          tags:
@@ -492,8 +492,10 @@ app.patch('/api/residences/:residenceNum', (req,res) => {
  *                properties:
  *                    memberAddr:
  *                        type: string
- *                    residenceNum:
- *                        type: integer
+ *                required: true
+ *              - name: residenceNum
+ *                in: path
+ *                type: integer
  *                required: true
  *          responses:
  *              200:
@@ -547,11 +549,11 @@ app.patch('/api/residences/:residenceNum', (req,res) => {
  *                                type: string
  *                                default: "Error Message"
  */
-app.delete('/api/residences', (req,res) => {
-    contract.methods.deleteResidence(req.body.memberAddr, req.body.residenceNum)
+app.delete('/api/residences/:residenceNum', (req,res) => {
+    contract.methods.deleteResidence(req.body.memberAddr, req.params.residenceNum)
         .send({from: admin, gas:1000000})
         .on('receipt',(receipt) => {
-            console.log('success: registerResidence')
+            console.log('success: deleteResidence')
             res.json({
                 'result':receipt.status,
                 'memberAddr':receipt.events.DeleteResidence.returnValues[0],
@@ -569,7 +571,7 @@ app.delete('/api/residences', (req,res) => {
             })
         })
         .on('error', (err,_) => {
-            console.log(`fail: registerResidence, ${err}`)
+            console.log(`fail: deleteResidence, ${err}`)
             res.status(403).json({
                 'result':false,
                 'status':{
