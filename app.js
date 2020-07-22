@@ -750,6 +750,8 @@ app.post('/api/residences/:residenceNum/usage-consent', (req,res) => {
  *                                      type: string
  *                                  residenceNum:
  *                                      type: string
+ *                                  alive:
+ *                                      type: boolean
  *                                  currentBlock:
  *                                      type: integer
  *                                  previousBlock:
@@ -814,15 +816,16 @@ app.get('/api/residences/:residenceNum/history', (req,res) => {
             toBlock = req.query.toBlock
         }
         if(fromBlock <= toBlock && toBlock <= bn && toBlock - fromBlock <= 604800) {
+            //ChangeResidence 이벤트를 검색해서 values 배열안에 담음
             contract.getPastEvents('ChangeResidence',{filter:{_residenceNum:[req.params.residenceNum]},fromBlock:fromBlock,toBlock:toBlock},
             (err, event) => {
                 if(event) {
                     console.log('success: lookupHistory')
-                    console.log(`DEBUG: blockRange (${fromBlock}, ${toBlock})`)
                     values = event.map((element)=>{
                         return {
                             'memberAddr':element.returnValues[0],
                             'residenceNum':element.returnValues[1],
+                            'alive':true,
                             'currentBlock':element.returnValues[2],
                             'previousBlock':element.returnValues[3],
                             'myGeonick':element.returnValues[4],
@@ -831,15 +834,56 @@ app.get('/api/residences/:residenceNum/history', (req,res) => {
                             'gridAddr':element.returnValues[7]
                         }
                     })
-                    res.json({
-                        'result':true, 
-                        'values':values, 
-                        'status':{
-                            'code':200,
-                            'message':'OK'
+                    //DeleteResidence 이벤트를 검색해서 values_sub 배열에 담은 후 values 배열에 합침
+                    contract.getPastEvents('DeleteResidence', {filter:{_residenceNum:[req.params.residenceNum]},fromBlock:fromBlock,toBlock:toBlock},
+                        (err_sub, event_sub) => {
+                            if(event_sub) {
+                                var values_sub = event_sub.map((element) => {
+                                    return {
+                                        'memberAddr':element.returnValues[0],
+                                        'residenceNum':element.returnValues[1],
+                                        'alive': false,
+                                        'currentBlock':element.returnValues[2],
+                                        'previousBlock':element.returnValues[3],
+                                        'myGeonick':element.returnValues[4],
+                                        'gs1':element.returnValues[5],
+                                        'streetAddr':element.returnValues[6],
+                                        'gridAddr':element.returnValues[7]
+                                    }
+                                })
+                                //두 배열 합치기
+                                values.concat(values_sub)
+                                //배열을 시간순으로 정렬함
+                                values.sort((i,j) => {
+                                    let comparison = 0
+                                    if(i.currentBlock > j.currentBlock) {
+                                        comparison = 1
+                                    } else if(i.currentBlock < j.currentBlock) {
+                                        comparison = -1
+                                    }
+                                    return comparison
+                                })
+                                res.json({
+                                    'result':true, 
+                                    'values':values, 
+                                    'status':{
+                                        'code':200,
+                                        'message':'OK'
+                                    }
+                                })
+                            } else {
+                                console.log(`fail: lookupHistory, ${err}`)
+                                res.status(403).json({
+                                    'result':false,
+                                    'status':{
+                                        'code':403,
+                                        'message':`${err}`
+                                    }
+                                })
+                            }
+                            
                         }
-                    })
-        
+                    )        
                 } else {
                     console.log(`fail: lookupHistory, ${err}`)
                     res.status(403).json({
