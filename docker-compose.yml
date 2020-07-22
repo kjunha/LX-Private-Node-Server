@@ -12,7 +12,7 @@ services:
     container_name: node
     working_dir: /usr/app
   server:
-    image: kjunha77/lxp-server
+    build: .
     tty: true
     networks:
         lxpnet:

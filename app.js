@@ -350,15 +350,18 @@ app.post('/api/residences', (req,res) => {
                 }
             })
         })
-        .on('error', (err,_) => {
-            console.log(`fail: registerResidence, ${err}`)
-            res.status(403).json({
-                'result':false,
-                'status':{
-                    'code':403,
-                    'message':`${err}`
-                }
-            })
+        .on('error', () => {
+            contract.methods.registerResidence(req.body.memberAddr, req.body.residenceNum, req.body.myGeonick, req.body.gs1, req.body.streetAddr, req.body.gridAddr)
+                .call({from: admin}, (err, _) => {
+                    console.log(`fail: registerResidence, ${err}`)
+                    res.status(403).json({
+                        'result':false,
+                        'status':{
+                            'code':403,
+                            'message':`${err}`
+                        }
+                    })
+                })
         })
 })
 
