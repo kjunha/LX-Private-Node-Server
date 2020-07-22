@@ -133,7 +133,7 @@ app.post('/api/members', async (req,res) => {
         //--! 매번 새로운 계정을 만들어 추가하는 방식 시도 
         //--! 기존의 이미 존재하는 계정을 반환하지 않는 알고리즘 연구 필요
         var newAccount = await web3.eth.accounts.create()
-        contract.methods.registerMember(newAccount.address,req.body.memberPk).send({from:admin})
+        contract.methods.registerMember(newAccount.address,req.body.memberPk).send({from:admin, gas:1000000})
             .on('receipt', (receipt) => {
                 console.log('success: registerMember')
                 res.json({
@@ -147,9 +147,18 @@ app.post('/api/members', async (req,res) => {
                     }
                 })
             })
-            .on('error', (err) => {
-                console.log(`fail: registerMember, ${err}`)
-                res.json({'result':false, 'message':`${err}`})
+            .on('error', () => {
+                contract.methods.registerMember(newAccount.address,req.body.memberPk)
+                    .call({from: admin}, (err, _) => {
+                        console.log(`fail: registerMember, ${err}`)
+                        res.json({
+                            'result':false,
+                            'status':{
+                                'code':403,
+                                'message':`${err}`
+                            }
+                        })
+                    })
             })
     } catch(err) {
         console.log(`fail: asyncAction, ${err}`)
@@ -225,7 +234,7 @@ app.post('/api/members', async (req,res) => {
  *                                default: "Error Message"
  */
 app.delete('/api/members', (req,res) => {
-    contract.methods.deregisterMember(req.body.memberAddr,req.body.memberPk).send({from:admin})
+    contract.methods.deregisterMember(req.body.memberAddr,req.body.memberPk).send({from:admin, gas:1000000})
     .on('receipt', (receipt) => {
         console.log('success: deregisterMember')
         res.json({
@@ -238,15 +247,18 @@ app.delete('/api/members', (req,res) => {
             }
         })
     })
-    .on('error', (err) => {
-        console.log(`fail: registerMember, ${err}`)
-        res.status(403).json({
-            'result':false,
-            'status':{
-                'code':403,
-                'message':`${err}`
-            }
-        })
+    .on('error', () => {
+        contract.methods.deregisterMember(req.body.memberAddr,req.body.memberPk)
+            .call({from:admin}, (err, _) => {
+                console.log(`fail: registerMember, ${err}`)
+                res.status(403).json({
+                    'result':false,
+                    'status':{
+                        'code':403,
+                        'message':`${err}`
+                    }
+                })
+            })
     })
 })
 
@@ -467,15 +479,18 @@ app.patch('/api/residences/:residenceNum', (req,res) => {
             }
         })
     })
-    .on('error', (err,_) => {
-        console.log(`fail: updateResidence, ${err}`)
-        res.status(403).json({
-            'result':false,
-            'status':{
-                'code':403,
-                'message':`${err}`
-            }
-        })
+    .on('error', () => {
+        contract.methods.updateResidence(req.body.memberAddr, req.params.residenceNum, req.body.myGeonick, req.body.gs1, req.body.streetAddr, req.body.gridAddr)
+            .call({from: admin}, (err,_) => {
+                console.log(`fail: updateResidence, ${err}`)
+                res.status(403).json({
+                    'result':false,
+                    'status':{
+                        'code':403,
+                        'message':`${err}`
+                    }
+                })
+            })
     })
 })
 
@@ -573,15 +588,18 @@ app.delete('/api/residences/:residenceNum', (req,res) => {
                 }
             })
         })
-        .on('error', (err,_) => {
-            console.log(`fail: deleteResidence, ${err}`)
-            res.status(403).json({
-                'result':false,
-                'status':{
-                    'code':403,
-                    'message':`${err}`
-                }
-            })
+        .on('error', () => {
+            contract.methods.deleteResidence(req.body.memberAddr, req.params.residenceNum)
+                .call({from: admin}, (err,_) => {
+                    console.log(`fail: deleteResidence, ${err}`)
+                    res.status(403).json({
+                        'result':false,
+                        'status':{
+                            'code':403,
+                            'message':`${err}`
+                        }
+                    })
+                })
         })
 })
 
@@ -672,15 +690,18 @@ app.post('/api/residences/:residenceNum/usage-consent', (req,res) => {
                 }
             })
         })
-        .on('error', (err,_) => {
-            console.log(`fail: allowAccess, ${err}`)
-            res.status(403).json({
-                'result':false,
-                'status':{
-                    'code':403,
-                    'message':`${err}`
-                }
-            })
+        .on('error', () => {
+            contract.methods.allowAccessTo(req.body.memberAddr, req.body.requestAddr, req.params.residenceNum, req.body.approvalStat)
+                .call({from: admin}, (err, _) => {
+                    console.log(`fail: allowAccess, ${err}`)
+                    res.status(403).json({
+                        'result':false,
+                        'status':{
+                            'code':403,
+                            'message':`${err}`
+                        }
+                    })
+                })
         })
 })
 
@@ -909,6 +930,7 @@ app.get('/api/residences', (req,res) => {
     contract.methods.getResidence(req.query.reqFrom, req.query.residenceNum).call({from: admin}, (err, result) => {
         if(result) {
             console.log(`success: getResidence`)
+            contract.methods.getResidence(req.query.reqFrom, req.query.residenceNum).send({from: admin, gas:1000000})
             res.json({
                 'result':result[0],
                 'myGeonick':result[1],
@@ -1238,7 +1260,7 @@ app.get('/api/residences/list', (req,res) => {
  *                                default: "Error Message"
  */
 app.post('/api/system/freemygeonick', (req,res) => {
-    contract.methods.freeMyGeonick(req.body.myGeonick, req.body.gs1).send({from: admin})
+    contract.methods.freeMyGeonick(req.body.myGeonick, req.body.gs1).send({from: admin, gas:1000000})
         .on('receipt', (receipt) => {
             res.json({
                 'result':receipt.status,
@@ -1248,13 +1270,16 @@ app.post('/api/system/freemygeonick', (req,res) => {
                 }
             })
         })
-        .on('error', (err,_) => {
-            res.status(403).json({
-                'result':false, 
-                'status':{
-                    'code':403,
-                    'message':`${err}`
-                }
-            })
+        .on('error', () => {
+            contract.methods.freeMyGeonick(req.body.myGeonick, req.body.gs1)
+                .call({from: admin}, (err, _) => {
+                    res.status(403).json({
+                        'result':false, 
+                        'status':{
+                            'code':403,
+                            'message':`${err}`
+                        }
+                    })
+                })
         })
 })
