@@ -856,9 +856,11 @@ app.get('/api/residences/:residenceNum/history', (req,res) => {
                                 //배열을 시간순으로 정렬함
                                 values.sort((i,j) => {
                                     let comparison = 0
-                                    if(i.currentBlock > j.currentBlock) {
+                                    let numI = parseInt(i.currentBlock)
+                                    let numJ = parseInt(j.currentBlock)
+                                    if(numI > numJ) {
                                         comparison = 1
-                                    } else if(i.currentBlock < j.currentBlock) {
+                                    } else if(numI < numJ) {
                                         comparison = -1
                                     }
                                     return comparison

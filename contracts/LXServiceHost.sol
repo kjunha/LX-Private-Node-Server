@@ -376,6 +376,8 @@ contract LXServiceHost {
     //---리턴
     function freeMyGeonick(string memory _myGeonick, string memory _gs1) public returns(bool _success) {
         require(admin == msg.sender, "[ERR-10113] ACCESS_DENIED");
+        require(uniqueMyGeonick[_myGeonick], "[ERR-10111] MYGEONICK_ALREADY_USABLE");
+        require(uniqueGS1Code[_gs1], "[ERR-10042] GS1_CODE_ALREADY_USABLE");
         uniqueMyGeonick[_myGeonick] = false;
         uniqueGS1Code[_gs1] = false;
         return true;
