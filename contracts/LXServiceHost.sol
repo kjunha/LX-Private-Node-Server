@@ -60,13 +60,13 @@ contract LXServiceHost {
     //ERC-20을 사용한 추가적인 거래기능 구성
     //mapping(address => uint256) balances;
     
-    event RegisterMember(address indexed _memberAddr, uint256 indexed _memberNum);
+    event RegisterMember(address indexed _memberAddr, uint256 indexed _memberNum, uint256 indexed currentBlockNum);
     event ChangeResidence(address indexed _memberAddr, uint256 indexed _residenceNum, uint256 indexed currentBlockNum, uint256 previousBlockNum, string _myGeonick, string _gs1, string _streetAddress, string _gridAddress);
     event DeleteResidence(address indexed _memberAddr, uint256 indexed _residenceNum, uint256 indexed currentBlockNum, uint256 previousBlockNum, string _myGeonick, string _gs1, string _streetAddress, string _gridAddress);
-    event PreConsentTo(address indexed _requesterAddr, address indexed _memberAddr, uint256 _residenceNum, bool _approvalStatus);
-    event RealTimeConsentTo(address indexed _requesterAddr, address indexed _memberAddr, uint256 _residenceNum, bool _approvalStatus);
-    event RequestForAddress(address indexed _requesterAddr, uint256 _residenceNum);
-    event DeregisterMember(address indexed _memberAddr, uint256 indexed _memberNum);
+    event PreConsentTo(address indexed _memberAddr, address indexed _requesterAddr, uint256 indexed currentBlockNum, uint256 _residenceNum, bool _approvalStatus);
+    event RealTimeConsentTo(address indexed _memberAddr, address indexed _requesterAddr, uint256 indexed currentBlockNum, uint256 _residenceNum, bool _approvalStatus);
+    event RequestForAddress(address indexed _requesterAddr, uint256 _residenceNum, uint256 indexed currentBlockNum);
+    event DeregisterMember(address indexed _memberAddr, uint256 indexed _memberNum, uint256 indexed currentBlockNum);
 
 
     //생성자(constructor): 배포시 배포자를 스마트 계약 관리자로 등록
@@ -81,7 +81,8 @@ contract LXServiceHost {
     // bool: 메소드 실행 성공 / 실패 (이하 함수에서는 설명 생략)
     function registerMember(address _memberAddr, uint256 _memberPk) public returns(bool) {
         require(!uniqueMemberAddr[_memberAddr], "[ERR-10036] MEMBER_ADDR_EXIST");
-        emit RegisterMember(_memberAddr, _memberPk);
+        uniqueMemberAddr[_memberAddr] = true;
+        emit RegisterMember(_memberAddr, _memberPk, block.number);
         return true;
     }
 
@@ -102,7 +103,8 @@ contract LXServiceHost {
             residencesOwner[resNum] = address(0);
             residences[resNum] = Residence({myGeonick: '', gs1: '', streetAddress: '', gridAddress: '', blockNumber:0});
         }
-        emit DeregisterMember(_memberAddr, _memberPk);
+        uniqueMemberAddr[_memberAddr] = false;
+        emit DeregisterMember(_memberAddr, _memberPk, block.number);
         return true;
     }
 
@@ -273,7 +275,7 @@ contract LXServiceHost {
         require(residencesOwner[_residenceNum] == _memberAddr, "[ERR-10074] MEMBER_IS_NOT_OWNER");
         
         residences[_residenceNum].accessApproved[_requester] = _approvalStatus;
-        emit PreConsentTo(_memberAddr, _requester, _residenceNum, _approvalStatus);
+        emit PreConsentTo(_memberAddr, _requester, block.number,_residenceNum, _approvalStatus);
         return true;
     }
 
@@ -306,7 +308,7 @@ contract LXServiceHost {
             _gridAddress = residences[_residenceNum].gridAddress;
             _success = true;
             //사전등록되어 정보를 반환한 기록(이벤트)를 남김
-            emit RequestForAddress(_requestFrom, _residenceNum);
+            emit RequestForAddress(_requestFrom, _residenceNum, block.number);
         }
         //만약 요청자가 사전등록되어있지 않으면 success false를 반환하며 해당정보에 빈값을 리턴함
         else {
@@ -343,8 +345,8 @@ contract LXServiceHost {
         _streetAddress = residences[_residenceNum].streetAddress;
         _gridAddress = residences[_residenceNum].gridAddress;
         _success = true;
-        emit RequestForAddress(_requestFrom, _residenceNum);
-        emit RealTimeConsentTo(_requestFrom, residencesOwner[_residenceNum], _residenceNum, true);
+        emit RequestForAddress(_requestFrom, _residenceNum, block.number);
+        emit RealTimeConsentTo(residencesOwner[_residenceNum], _requestFrom, block.number, _residenceNum, true);
     }
     //[[서비스 시스템 유지 및 관리 관련 기능]]
     //사용자에게 등록된 모든 주소지 개수 조회(관리자 및 본인)
