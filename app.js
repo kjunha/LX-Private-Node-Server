@@ -1336,7 +1336,7 @@ app.post('/api/system/freemygeonick', (req,res) => {
  * @swagger
  * 'api/system/events/member':
  *      get:
- *          description: 주어진 블록범위 내의 회원기록 관련 이벤트를 검색하여 배열로 반환
+ *          description: 주어진 블록범위 내의 회원기록 관련 이벤트를 검색하여 배열로 반환. 최대 604800개의 블록 검사 가능.
  *          tags:
  *              - system
  *          parameters:
@@ -1354,7 +1354,7 @@ app.post('/api/system/freemygeonick', (req,res) => {
  *                default: latest
  *          responses:
  *              200:
- *                description: 주어진 범위내 주소고유번호를 가진 이벤트를 탐색하여 values 배열로 반환. 최대 604800개의 블록 검사 가능.
+ *                description: 주어진 범위내 주소고유번호를 가진 이벤트를 탐색하여 values 배열로 반환.
  *                schema:
  *                  type: object
  *                  properties:
