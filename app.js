@@ -840,9 +840,9 @@ app.get('/api/residences/:residenceNum/history', (req,res) => {
                             if(event_sub) {
                                 values_sub = event_sub.map((element) => {
                                     return {
+                                        'alive': false,
                                         'memberAddr':element.returnValues[0],
                                         'residenceNum':element.returnValues[1],
-                                        'alive': false,
                                         'currentBlock':element.returnValues[2],
                                         'previousBlock':element.returnValues[3],
                                         'myGeonick':element.returnValues[4],
@@ -1334,7 +1334,7 @@ app.post('/api/system/freemygeonick', (req,res) => {
  * 모든 회원등록, 탈퇴관련 이벤트 조회
  * SC함수: 없음(web3 event 조회 요청)
  * @swagger
- * 'api/system/events/member':
+ * /api/system/events/member:
  *      get:
  *          description: 주어진 블록범위 내의 회원기록 관련 이벤트를 검색하여 배열로 반환. 최대 604800개의 블록 검사 가능.
  *          tags:
@@ -1401,7 +1401,7 @@ app.post('/api/system/freemygeonick', (req,res) => {
  *                                type: string
  *                                default: "Error Message"
  */
-app.get('api/system/events/member', (req,res) => {
+app.get('/api/system/events/member', (req,res) => {
     var fromBlock
     var toBlock
     web3.eth.getBlockNumber().then((bn) => {
@@ -1512,7 +1512,7 @@ app.get('api/system/events/member', (req,res) => {
  * 모든 주소정보 등록, 변경 삭제관련 이벤트 조회
  * SC함수: 없음(web3 event 조회 요청)
  * @swagger
- * api/system/events/residence:
+ * /api/system/events/residence:
  *      get:
  *          description: 주어진 블록범위 내의 주소정보 생성 변경 및 삭제 이벤트를 검색하여 배열로 반환. 최대 604800개의 블록 검사 가능.
  *          tags:
@@ -1589,7 +1589,7 @@ app.get('api/system/events/member', (req,res) => {
  *                                type: string
  *                                default: "Error Message"
  */
-app.get('api/system/events/residence', (req,res) => {
+app.get('/api/system/events/residence', (req,res) => {
     var fromBlock
     var toBlock
     web3.eth.getBlockNumber().then((bn) => {
@@ -1621,9 +1621,9 @@ app.get('api/system/events/residence', (req,res) => {
                     console.log('success: lookupHistory')
                     values = event.map((element)=>{
                         return {
+                            'alive':true,
                             'memberAddr':element.returnValues[0],
                             'residenceNum':element.returnValues[1],
-                            'alive':true,
                             'currentBlock':element.returnValues[2],
                             'previousBlock':element.returnValues[3],
                             'myGeonick':element.returnValues[4],
@@ -1638,9 +1638,9 @@ app.get('api/system/events/residence', (req,res) => {
                             if(event_sub) {
                                 values_sub = event_sub.map((element) => {
                                     return {
+                                        'alive': false,
                                         'memberAddr':element.returnValues[0],
                                         'residenceNum':element.returnValues[1],
-                                        'alive': false,
                                         'currentBlock':element.returnValues[2],
                                         'previousBlock':element.returnValues[3],
                                         'myGeonick':element.returnValues[4],
@@ -1711,7 +1711,7 @@ app.get('api/system/events/residence', (req,res) => {
  * 모든 주소정보 조회관련 이벤트 조회
  * SC함수: 없음(web3 event 조회 요청)
  * @swagger
- * api/system/events/lookup:
+ * /api/system/events/lookup:
  *      get:
  *          description: 주어진 블록범위 내의 주소정보 열람 및 사용권한 변경 이벤트를 검색하여 배열로 반환. 최대 604800개의 블록 검사 가능.
  *          tags:
@@ -1782,7 +1782,7 @@ app.get('api/system/events/residence', (req,res) => {
  *                                type: string
  *                                default: "Error Message"
  */
-app.get('api/system/events/lookup', (req,res) => {
+app.get('/api/system/events/lookup', (req,res) => {
     var fromBlock
     var toBlock
     web3.eth.getBlockNumber().then((bn) => {

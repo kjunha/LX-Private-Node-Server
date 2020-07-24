@@ -81,6 +81,7 @@ contract LXServiceHost {
     // bool: 메소드 실행 성공 / 실패 (이하 함수에서는 설명 생략)
     function registerMember(address _memberAddr, uint256 _memberPk) public returns(bool) {
         require(!uniqueMemberAddr[_memberAddr], "[ERR-10036] MEMBER_ADDR_EXIST");
+        uniqueMemberAddr[_memberAddr] = true;
         emit RegisterMember(_memberAddr, _memberPk, block.number);
         return true;
     }
@@ -102,6 +103,7 @@ contract LXServiceHost {
             residencesOwner[resNum] = address(0);
             residences[resNum] = Residence({myGeonick: '', gs1: '', streetAddress: '', gridAddress: '', blockNumber:0});
         }
+        uniqueMemberAddr[_memberAddr] = false;
         emit DeregisterMember(_memberAddr, _memberPk, block.number);
         return true;
     }
