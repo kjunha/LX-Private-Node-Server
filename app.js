@@ -1379,7 +1379,7 @@ app.post('/api/system/freemygeonick', (req,res) => {
  *                                      type: string
  *                                  memberAddr:
  *                                      type: string
- *                                  memberNum:
+ *                                  primaryKey:
  *                                      type: integer
  *                                  currentBlock:
  *                                      type: integer
@@ -1443,7 +1443,7 @@ app.get('/api/system/events/member', (req,res) => {
                         return {
                             'stage':'register',
                             'memberAddr':element.returnValues[0],
-                            'memberNum':element.returnValues[1],
+                            'primaryKey':element.returnValues[1],
                             'currentBlock':element.returnValues[2]
                         }
                     })
@@ -1455,7 +1455,7 @@ app.get('/api/system/events/member', (req,res) => {
                                     return {
                                         'stage':'deregister',
                                         'memberAddr':element.returnValues[0],
-                                        'memberNum':element.returnValues[1],
+                                        'primaryKey':element.returnValues[1],
                                         'currentBlock':element.returnValues[2]
                                     }
                                 })
