@@ -27,6 +27,12 @@ LX 산학협력 주소혁신 프로젝트 블록체인 서버 프로토타입 �
     docker-compose up -d
 ```
 2. http://127.0.0.1:8080/api-docs 에서 swagger api 문서를 확인할 수 있다.
+
+3. 업데이트 된 내용을 반영할 경우, docker hub 에 업로도된 이미지를 먼저 pull 한 후 docker-compose 를 실행한다.
+```
+    docker-compose pull
+    docker-compose up -d
+```
 <br/>
 
 :globe_with_meridians: Network 정보
