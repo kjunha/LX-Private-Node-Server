@@ -101,6 +101,8 @@ app.get('/', (req,res) => {
  *                      privateKey:
  *                          type: string
  *                          default: '블록체인 주소 개인키'
+ *                      currentBlock:
+ *                          type: integer
  *                      status:
  *                          type: object
  *                          properties:
@@ -141,6 +143,7 @@ app.post('/api/members', async (req,res) => {
                     'primaryKey':receipt.events.RegisterMember.returnValues[1],
                     'memberAddr':receipt.events.RegisterMember.returnValues[0],
                     'privateKey':newAccount.privateKey,
+                    'currentBlock':receipt.events.RegisterMember.returnValues[2],
                     'status':{
                         'code':200,
                         'message':'OK'
@@ -206,6 +209,8 @@ app.post('/api/members', async (req,res) => {
  *                      memberAddr:
  *                          type: string
  *                          default: "블록체인 주소"
+ *                      currentBlock:
+ *                          type: integer
  *                      status:
  *                          type: object
  *                          properties:
@@ -241,6 +246,7 @@ app.delete('/api/members', (req,res) => {
             'result':receipt.status,
             'primaryKey':receipt.events.DeregisterMember.returnValues[1],
             'memberAddr':receipt.events.DeregisterMember.returnValues[0],
+            'currentBlock':receipt.events.DeregisterMember.returnValues[2],
             'status':{
                 'code':200,
                 'message':'OK'
@@ -642,6 +648,8 @@ app.delete('/api/residences/:residenceNum', (req,res) => {
  *                          type: string
  *                      requestAddr:
  *                          type: string
+ *                      currentBlock:
+ *                          type: integer
  *                      residenceNum:
  *                          type: integer
  *                      approvalStat:
@@ -682,8 +690,9 @@ app.post('/api/residences/:residenceNum/usage-consent', (req,res) => {
                 'result':receipt.status,
                 'memberAddr':receipt.events.PreConsentTo.returnValues[0],
                 'requestAddr':receipt.events.PreConsentTo.returnValues[1],
-                'residenceNum':receipt.events.PreConsentTo.returnValues[2],
-                'approvalStat':receipt.events.PreConsentTo.returnValues[3],
+                'currentBlock':receipt.events.PreConsentTo.returnValues[2],
+                'residenceNum':receipt.events.PreConsentTo.returnValues[3],
+                'approvalStat':receipt.events.PreConsentTo.returnValues[4],
                 'status':{
                     'code':200,
                     'message':'OK'
@@ -712,7 +721,7 @@ app.post('/api/residences/:residenceNum/usage-consent', (req,res) => {
  * @swagger
  * /api/residences/{residenceNum}/history:
  *      get:
- *          description: 주어진 블록범위 내의 해당 주소 고유번호에 대한 ChangeResidence 이벤트를 검색하여 배열로 반환
+ *          description: 주어진 블록범위 내의 해당 주소 고유번호에 대한 주소정보 추가 변경 및 삭제 이벤트를 검색하여 배열로 반환. 최대 604800개의 블록 검사 가능.
  *          tags:
  *              - residences
  *          parameters:
@@ -746,12 +755,12 @@ app.post('/api/residences/:residenceNum/usage-consent', (req,res) => {
  *                          items:
  *                              type: object
  *                              properties:
+ *                                  alive:
+ *                                      type: boolean
  *                                  memberAddr:
  *                                      type: string
  *                                  residenceNum:
  *                                      type: string
- *                                  alive:
- *                                      type: boolean
  *                                  currentBlock:
  *                                      type: integer
  *                                  previousBlock:
@@ -823,9 +832,9 @@ app.get('/api/residences/:residenceNum/history', (req,res) => {
                     console.log('success: lookupHistory')
                     values = event.map((element)=>{
                         return {
+                            'alive':true,
                             'memberAddr':element.returnValues[0],
                             'residenceNum':element.returnValues[1],
-                            'alive':true,
                             'currentBlock':element.returnValues[2],
                             'previousBlock':element.returnValues[3],
                             'myGeonick':element.returnValues[4],
@@ -840,9 +849,9 @@ app.get('/api/residences/:residenceNum/history', (req,res) => {
                             if(event_sub) {
                                 values_sub = event_sub.map((element) => {
                                     return {
+                                        'alive': false,
                                         'memberAddr':element.returnValues[0],
                                         'residenceNum':element.returnValues[1],
-                                        'alive': false,
                                         'currentBlock':element.returnValues[2],
                                         'previousBlock':element.returnValues[3],
                                         'myGeonick':element.returnValues[4],
@@ -1329,4 +1338,592 @@ app.post('/api/system/freemygeonick', (req,res) => {
                     })
                 })
         })
+})
+/**
+ * 모든 회원등록, 탈퇴관련 이벤트 조회
+ * SC함수: 없음(web3 event 조회 요청)
+ * @swagger
+ * /api/system/events/member:
+ *      get:
+ *          description: 주어진 블록범위 내의 회원기록 관련 이벤트를 검색하여 배열로 반환. 최대 604800개의 블록 검사 가능.
+ *          tags:
+ *              - system
+ *          parameters:
+ *              - name: fromBlock
+ *                in: query
+ *                description: 탐색을 시작할 블록의 번호. 기본값은 0
+ *                type: string
+ *                required: false
+ *                default: 0
+ *              - name: toBlock
+ *                in: query
+ *                description: 탐색을 마칠 블록의 번호. 기본값은 'latest'
+ *                type: string
+ *                required: false
+ *                default: latest
+ *          responses:
+ *              200:
+ *                description: 주어진 범위내 주소고유번호를 가진 이벤트를 탐색하여 values 배열로 반환.
+ *                schema:
+ *                  type: object
+ *                  properties:
+ *                      result:
+ *                          type: boolean
+ *                          default: true
+ *                      values:
+ *                          type: array
+ *                          items:
+ *                              type: object
+ *                              properties:
+ *                                  stage:
+ *                                      type: string
+ *                                  memberAddr:
+ *                                      type: string
+ *                                  primaryKey:
+ *                                      type: integer
+ *                                  currentBlock:
+ *                                      type: integer
+ *                                  status:
+ *                                      type: object
+ *                                      properties:
+ *                                          code:
+ *                                            type: integer
+ *                                            default: 200  
+ *                                          message:
+ *                                            type: string
+ *                                            default: "OK"
+ *              403:
+ *                  description: 이벤트 검색에 실패함
+ *                  schema:
+ *                    type: object
+ *                    properties:
+ *                        result:
+ *                          type: boolean
+ *                          default: false
+ *                        status:
+ *                          type: object
+ *                          properties:
+ *                              code:
+ *                                type: integer
+ *                                default: 403  
+ *                              message:
+ *                                type: string
+ *                                default: "Error Message"
+ */
+app.get('/api/system/events/member', (req,res) => {
+    var fromBlock
+    var toBlock
+    web3.eth.getBlockNumber().then((bn) => {
+        if(req.query.fromBlock == undefined) {
+            if(bn > 86400) {
+                fromBlock = bn - 86400
+            } else {
+                fromBlock = 0;
+            }
+        } else {
+            fromBlock = req.query.fromBlock
+        }
+        if(req.query.toBlock == undefined) {
+            if(bn > fromBlock + 86400) {
+                toBlock = fromBlock + 86400
+            } else {
+                toBlock = bn;
+            }
+        } else if(req.query.toBlock.valueOf() == 'latest'){
+            toBlock = bn
+        } else {
+            toBlock = req.query.toBlock
+        }
+        if(fromBlock <= toBlock && toBlock <= bn && toBlock - fromBlock <= 604800) {
+            contract.getPastEvents('RegisterMember',{fromBlock:fromBlock,toBlock:toBlock},
+            (err, event) => {
+                if(event) {
+                    console.log('success: getMemberEventLog')
+                    values = event.map((element)=>{
+                        return {
+                            'stage':'register',
+                            'memberAddr':element.returnValues[0],
+                            'primaryKey':element.returnValues[1],
+                            'currentBlock':element.returnValues[2]
+                        }
+                    })
+                    //DeleteResidence 이벤트를 검색해서 values_sub 배열에 담은 후 values 배열에 합침
+                    contract.getPastEvents('DeregisterMember', {fromBlock:fromBlock,toBlock:toBlock},
+                        (err_sub, event_sub) => {
+                            if(event_sub) {
+                                values_sub = event_sub.map((element) => {
+                                    return {
+                                        'stage':'deregister',
+                                        'memberAddr':element.returnValues[0],
+                                        'primaryKey':element.returnValues[1],
+                                        'currentBlock':element.returnValues[2]
+                                    }
+                                })
+                                //두 배열 합치기
+                                values = values.concat(values_sub)
+                                //배열을 시간순으로 정렬함
+                                values.sort((i,j) => {
+                                    let comparison = 0
+                                    let numI = parseInt(i.currentBlock)
+                                    let numJ = parseInt(j.currentBlock)
+                                    if(numI > numJ) {
+                                        comparison = 1
+                                    } else if(numI < numJ) {
+                                        comparison = -1
+                                    }
+                                    return comparison
+                                })
+                                res.json({
+                                    'result':true, 
+                                    'values':values, 
+                                    'status':{
+                                        'code':200,
+                                        'message':'OK'
+                                    }
+                                })
+                            } else {
+                                console.log(`fail: getMemberEventLog:Deregister, ${err_sub}`)
+                                res.status(403).json({
+                                    'result':false,
+                                    'status':{
+                                        'code':403,
+                                        'message':`${err_sub}`
+                                    }
+                                })
+                            }
+                            
+                        }
+                    )        
+                } else {
+                    console.log(`fail: getMemberEventLog:Register, ${err}`)
+                    res.status(403).json({
+                        'result':false,
+                        'status':{
+                            'code':403,
+                            'message':`${err}`
+                        }
+                    })
+                }
+            })
+        } else {
+            console.log(`fail: lookupHistory, BLOCK_NUMBER_RANGE_EXCEED (${fromBlock}, ${toBlock})`)
+            res.status(403).json({
+                'result':false, 
+                'status':{
+                    'code':403,
+                    'message':'BLOCK_NUMBER_RANGE_EXCEED'
+                }
+            })
+        }
+    })
+})
+/**
+ * 모든 주소정보 등록, 변경 삭제관련 이벤트 조회
+ * SC함수: 없음(web3 event 조회 요청)
+ * @swagger
+ * /api/system/events/residence:
+ *      get:
+ *          description: 주어진 블록범위 내의 주소정보 생성 변경 및 삭제 이벤트를 검색하여 배열로 반환. 최대 604800개의 블록 검사 가능.
+ *          tags:
+ *              - system
+ *          parameters:
+ *              - name: fromBlock
+ *                in: query
+ *                description: 탐색을 시작할 블록의 번호. 기본값은 0
+ *                type: string
+ *                required: false
+ *                default: 0
+ *              - name: toBlock
+ *                in: query
+ *                description: 탐색을 마칠 블록의 번호. 기본값은 'latest'
+ *                type: string
+ *                required: false
+ *                default: latest
+ *          responses:
+ *              200:
+ *                description: 주어진 범위내 주소고유번호를 가진 이벤트를 탐색하여 values 배열로 반환
+ *                schema:
+ *                  type: object
+ *                  properties:
+ *                      result:
+ *                          type: boolean
+ *                          default: true
+ *                      values:
+ *                          type: array
+ *                          items:
+ *                              type: object
+ *                              properties:
+ *                                  alive:
+ *                                      type: boolean
+ *                                  memberAddr:
+ *                                      type: string
+ *                                  residenceNum:
+ *                                      type: string
+ *                                  currentBlock:
+ *                                      type: integer
+ *                                  previousBlock:
+ *                                      type: integer
+ *                                  myGeonick:
+ *                                      type: string
+ *                                  gs1:
+ *                                      type: string
+ *                                  streetAddr:
+ *                                      type: string
+ *                                  gridAddr:
+ *                                      type: string
+ *                                  status:
+ *                                      type: object
+ *                                      properties:
+ *                                          code:
+ *                                            type: integer
+ *                                            default: 200  
+ *                                          message:
+ *                                            type: string
+ *                                            default: "OK"
+ *              403:
+ *                  description: 이벤트 검색에 실패함
+ *                  schema:
+ *                    type: object
+ *                    properties:
+ *                        result:
+ *                          type: boolean
+ *                          default: false
+ *                        status:
+ *                          type: object
+ *                          properties:
+ *                              code:
+ *                                type: integer
+ *                                default: 403  
+ *                              message:
+ *                                type: string
+ *                                default: "Error Message"
+ */
+app.get('/api/system/events/residence', (req,res) => {
+    var fromBlock
+    var toBlock
+    web3.eth.getBlockNumber().then((bn) => {
+        if(req.query.fromBlock == undefined) {
+            if(bn > 86400) {
+                fromBlock = bn - 86400
+            } else {
+                fromBlock = 0;
+            }
+        } else {
+            fromBlock = req.query.fromBlock
+        }
+        if(req.query.toBlock == undefined) {
+            if(bn > fromBlock + 86400) {
+                toBlock = fromBlock + 86400
+            } else {
+                toBlock = bn;
+            }
+        } else if(req.query.toBlock.valueOf() == 'latest'){
+            toBlock = bn
+        } else {
+            toBlock = req.query.toBlock
+        }
+        if(fromBlock <= toBlock && toBlock <= bn && toBlock - fromBlock <= 604800) {
+            //ChangeResidence 이벤트를 검색해서 values 배열안에 담음
+            contract.getPastEvents('ChangeResidence',{fromBlock:fromBlock,toBlock:toBlock},
+            (err, event) => {
+                if(event) {
+                    console.log('success: lookupHistory')
+                    values = event.map((element)=>{
+                        return {
+                            'alive':true,
+                            'memberAddr':element.returnValues[0],
+                            'residenceNum':element.returnValues[1],
+                            'currentBlock':element.returnValues[2],
+                            'previousBlock':element.returnValues[3],
+                            'myGeonick':element.returnValues[4],
+                            'gs1':element.returnValues[5],
+                            'streetAddr':element.returnValues[6],
+                            'gridAddr':element.returnValues[7]
+                        }
+                    })
+                    //DeleteResidence 이벤트를 검색해서 values_sub 배열에 담은 후 values 배열에 합침
+                    contract.getPastEvents('DeleteResidence', {fromBlock:fromBlock,toBlock:toBlock},
+                        (err_sub, event_sub) => {
+                            if(event_sub) {
+                                values_sub = event_sub.map((element) => {
+                                    return {
+                                        'alive': false,
+                                        'memberAddr':element.returnValues[0],
+                                        'residenceNum':element.returnValues[1],
+                                        'currentBlock':element.returnValues[2],
+                                        'previousBlock':element.returnValues[3],
+                                        'myGeonick':element.returnValues[4],
+                                        'gs1':element.returnValues[5],
+                                        'streetAddr':element.returnValues[6],
+                                        'gridAddr':element.returnValues[7]
+                                    }
+                                })
+                                //두 배열 합치기
+                                values = values.concat(values_sub)
+                                //배열을 시간순으로 정렬함
+                                values.sort((i,j) => {
+                                    let comparison = 0
+                                    let numI = parseInt(i.currentBlock)
+                                    let numJ = parseInt(j.currentBlock)
+                                    if(numI > numJ) {
+                                        comparison = 1
+                                    } else if(numI < numJ) {
+                                        comparison = -1
+                                    }
+                                    return comparison
+                                })
+                                res.json({
+                                    'result':true, 
+                                    'values':values, 
+                                    'status':{
+                                        'code':200,
+                                        'message':'OK'
+                                    }
+                                })
+                            } else {
+                                console.log(`fail: lookupHistory, ${err_sub}`)
+                                res.status(403).json({
+                                    'result':false,
+                                    'status':{
+                                        'code':403,
+                                        'message':`${err_sub}`
+                                    }
+                                })
+                            }
+                            
+                        }
+                    )        
+                } else {
+                    console.log(`fail: lookupHistory, ${err}`)
+                    res.status(403).json({
+                        'result':false,
+                        'status':{
+                            'code':403,
+                            'message':`${err}`
+                        }
+                    })
+                }
+            })
+        } else {
+            console.log(`fail: lookupHistory, BLOCK_NUMBER_RANGE_EXCEED (${fromBlock}, ${toBlock})`)
+            res.status(403).json({
+                'result':false, 
+                'status':{
+                    'code':403,
+                    'message':'BLOCK_NUMBER_RANGE_EXCEED'
+                }
+            })
+        }
+    })
+})
+/**
+ * 모든 주소정보 조회관련 이벤트 조회
+ * SC함수: 없음(web3 event 조회 요청)
+ * @swagger
+ * /api/system/events/lookup:
+ *      get:
+ *          description: 주어진 블록범위 내의 주소정보 열람 및 사용권한 변경 이벤트를 검색하여 배열로 반환. 최대 604800개의 블록 검사 가능.
+ *          tags:
+ *              - system
+ *          parameters:
+ *              - name: fromBlock
+ *                in: query
+ *                description: 탐색을 시작할 블록의 번호. 기본값은 0
+ *                type: string
+ *                required: false
+ *                default: 0
+ *              - name: toBlock
+ *                in: query
+ *                description: 탐색을 마칠 블록의 번호. 기본값은 'latest'
+ *                type: string
+ *                required: false
+ *                default: latest
+ *          responses:
+ *              200:
+ *                description: 주어진 범위내 주소고유번호를 가진 이벤트를 탐색하여 values 배열로 반환
+ *                schema:
+ *                  type: object
+ *                  properties:
+ *                      result:
+ *                          type: boolean
+ *                          default: true
+ *                      values:
+ *                          type: array
+ *                          items:
+ *                              type: object
+ *                              properties:
+ *                                  stage:
+ *                                      type: string
+ *                                  memberAddr:
+ *                                      type: string
+ *                                  requesterAddr:
+ *                                      type: string
+ *                                  currentBlock:
+ *                                      type: integer
+ *                                  residenceNum:
+ *                                      type: integer
+ *                                  approvalStat:
+ *                                      type: boolean
+ *                                  status:
+ *                                      type: object
+ *                                      properties:
+ *                                          code:
+ *                                            type: integer
+ *                                            default: 200  
+ *                                          message:
+ *                                            type: string
+ *                                            default: "OK"
+ *              403:
+ *                  description: 이벤트 검색에 실패함
+ *                  schema:
+ *                    type: object
+ *                    properties:
+ *                        result:
+ *                          type: boolean
+ *                          default: false
+ *                        status:
+ *                          type: object
+ *                          properties:
+ *                              code:
+ *                                type: integer
+ *                                default: 403  
+ *                              message:
+ *                                type: string
+ *                                default: "Error Message"
+ */
+app.get('/api/system/events/lookup', (req,res) => {
+    var fromBlock
+    var toBlock
+    web3.eth.getBlockNumber().then((bn) => {
+        if(req.query.fromBlock == undefined) {
+            if(bn > 86400) {
+                fromBlock = bn - 86400
+            } else {
+                fromBlock = 0;
+            }
+        } else {
+            fromBlock = req.query.fromBlock
+        }
+        if(req.query.toBlock == undefined) {
+            if(bn > fromBlock + 86400) {
+                toBlock = fromBlock + 86400
+            } else {
+                toBlock = bn;
+            }
+        } else if(req.query.toBlock.valueOf() == 'latest'){
+            toBlock = bn
+        } else {
+            toBlock = req.query.toBlock
+        }
+        if(fromBlock <= toBlock && toBlock <= bn && toBlock - fromBlock <= 604800) {
+            contract.getPastEvents('PreConsentTo',{fromBlock:fromBlock,toBlock:toBlock},
+            (err, event) => {
+                if(event) {
+                    console.log('success: getMemberEventLog')
+                    values = event.map((element)=>{
+                        return {
+                            'stage':'pre-consent',
+                            'memberAddr':element.returnValues[0],
+                            'requesterAddr':element.returnValues[1],
+                            'currentBlock':element.returnValues[2],
+                            'residenceNum':element.returnValues[3],
+                            'approvalStat':element.returnValues[4],
+                        }
+                    })
+                    //DeleteResidence 이벤트를 검색해서 values_sub 배열에 담은 후 values 배열에 합침
+                    contract.getPastEvents('RealTimeConsentTo', {fromBlock:fromBlock,toBlock:toBlock},
+                        (err_sub, event_sub) => {
+                            if(event_sub) {
+                                values_sub = event_sub.map((element) => {
+                                    return {
+                                        'stage':'realtime-consent',
+                                        'memberAddr':element.returnValues[0],
+                                        'requesterAddr':element.returnValues[1],
+                                        'currentBlock':element.returnValues[2],
+                                        'residenceNum':element.returnValues[3],
+                                        'approvalStat':element.returnValues[4],
+                                    }
+                                })
+                                //두 배열 합치기
+                                values = values.concat(values_sub)
+                                contract.getPastEvents('RequestForAddress', {fromBlock:fromBlock,toBlock:toBlock},
+                                    (err_sub_sub, event_sub_sub) => {
+                                        if(event_sub_sub) {
+                                            values_sub_sub = event_sub_sub.map((element) => {
+                                                return {
+                                                    'stage':'request',
+                                                    'memberAddr':'',
+                                                    'requesterAddr':element.returnValues[0],
+                                                    'currentBlock':element.returnValues[2],
+                                                    'residenceNum':element.returnValues[1],
+                                                    'approvalStat':''
+                                                }
+    
+                                            })
+                                            values = values.concat(values_sub_sub)
+                                            //배열을 시간순으로 정렬함
+                                            values.sort((i,j) => {
+                                                let comparison = 0
+                                                let numI = parseInt(i.currentBlock)
+                                                let numJ = parseInt(j.currentBlock)
+                                                if(numI > numJ) {
+                                                    comparison = 1
+                                                } else if(numI < numJ) {
+                                                    comparison = -1
+                                                }
+                                                return comparison
+                                            })
+                                            res.json({
+                                                'result':true, 
+                                                'values':values, 
+                                                'status':{
+                                                    'code':200,
+                                                    'message':'OK'
+                                                }
+                                            })
+                                        } else {
+                                            console.log(`fail: getLookupEventLog:RequestForAddress, ${err_sub}`)
+                                            res.status(403).json({
+                                                'result':false,
+                                                'status':{
+                                                    'code':403,
+                                                    'message':`${err_sub}`
+                                                }
+                                            })
+                                        }
+                                    })
+                            } else {
+                                console.log(`fail: getLookupEventLog:RealTimeConsentTo, ${err_sub}`)
+                                res.status(403).json({
+                                    'result':false,
+                                    'status':{
+                                        'code':403,
+                                        'message':`${err_sub}`
+                                    }
+                                })
+                            }
+                        }
+                    )        
+                } else {
+                    console.log(`fail: getLookupEventLog:PreConsentTo, ${err}`)
+                    res.status(403).json({
+                        'result':false,
+                        'status':{
+                            'code':403,
+                            'message':`${err}`
+                        }
+                    })
+                }
+            })
+        } else {
+            console.log(`fail: lookupHistory, BLOCK_NUMBER_RANGE_EXCEED (${fromBlock}, ${toBlock})`)
+            res.status(403).json({
+                'result':false, 
+                'status':{
+                    'code':403,
+                    'message':'BLOCK_NUMBER_RANGE_EXCEED'
+                }
+            })
+        }
+    })
 })
