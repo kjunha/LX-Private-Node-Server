@@ -101,6 +101,8 @@ app.get('/', (req,res) => {
  *                      privateKey:
  *                          type: string
  *                          default: '블록체인 주소 개인키'
+ *                      currentBlock:
+ *                          type: integer
  *                      status:
  *                          type: object
  *                          properties:
@@ -141,6 +143,7 @@ app.post('/api/members', async (req,res) => {
                     'primaryKey':receipt.events.RegisterMember.returnValues[1],
                     'memberAddr':receipt.events.RegisterMember.returnValues[0],
                     'privateKey':newAccount.privateKey,
+                    'currentBlock':receipt.events.RegisterMember.returnValues[2],
                     'status':{
                         'code':200,
                         'message':'OK'
@@ -206,6 +209,8 @@ app.post('/api/members', async (req,res) => {
  *                      memberAddr:
  *                          type: string
  *                          default: "블록체인 주소"
+ *                      currentBlock:
+ *                          type: integer
  *                      status:
  *                          type: object
  *                          properties:
@@ -241,6 +246,7 @@ app.delete('/api/members', (req,res) => {
             'result':receipt.status,
             'primaryKey':receipt.events.DeregisterMember.returnValues[1],
             'memberAddr':receipt.events.DeregisterMember.returnValues[0],
+            'currentBlock':receipt.events.DeregisterMember.returnValues[2],
             'status':{
                 'code':200,
                 'message':'OK'
@@ -642,6 +648,8 @@ app.delete('/api/residences/:residenceNum', (req,res) => {
  *                          type: string
  *                      requestAddr:
  *                          type: string
+ *                      currentBlock:
+ *                          type: integer
  *                      residenceNum:
  *                          type: integer
  *                      approvalStat:
@@ -682,8 +690,9 @@ app.post('/api/residences/:residenceNum/usage-consent', (req,res) => {
                 'result':receipt.status,
                 'memberAddr':receipt.events.PreConsentTo.returnValues[0],
                 'requestAddr':receipt.events.PreConsentTo.returnValues[1],
-                'residenceNum':receipt.events.PreConsentTo.returnValues[2],
-                'approvalStat':receipt.events.PreConsentTo.returnValues[3],
+                'currentBlock':receipt.events.PreConsentTo.returnValues[2],
+                'residenceNum':receipt.events.PreConsentTo.returnValues[3],
+                'approvalStat':receipt.events.PreConsentTo.returnValues[4],
                 'status':{
                     'code':200,
                     'message':'OK'
