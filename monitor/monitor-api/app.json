@@ -11,13 +11,13 @@
     "env":
     {
       "NODE_ENV"        : "production",
-      "RPC_HOST"        : "172.19.0.10",
-      "RPC_PORT"        : "8545",
+      "RPC_HOST"        : "58.230.162.159",
+      "RPC_PORT"        : "8501",
       "LISTENING_PORT"  : "30303",
       "INSTANCE_NAME"   : "node01",
       "CONTACT_DETAILS" : "",
       "WS_SERVER"       : "http://0.0.0.0:3000",
-      "WS_SECRET"       : "devenv",
+      "WS_SECRET"       : "lx",
       "VERBOSITY"       : 2
     }
   }

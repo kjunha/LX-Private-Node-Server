@@ -2,7 +2,7 @@
 cd netstats
 npm install
 grunt
-export WS_SECRET=devenv
+export WS_SECRET=lx
 pm2 start npm --name netstats -- start
 cd ..
 

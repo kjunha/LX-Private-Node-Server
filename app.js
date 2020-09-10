@@ -1,3 +1,4 @@
+require('dotenv').config()
 var express = require('express')
 var http = require('http')
 var bodyParser = require('body-parser')
@@ -5,11 +6,12 @@ var path = require('path');
 var app = express();
 app.use(bodyParser.urlencoded({extended:false}))
 app.use(bodyParser.json())
-app.set('port', process.env.PORT || 8080)
+app.set('port', process.env.SERVICE_PORT)
+app.set('view engine', 'pug')
 var server = http.createServer(app)
 var io = require('socket.io')(server)
 var Web3 = require('web3');
-web3 = new Web3(new Web3.providers.HttpProvider('http://172.19.0.10:8545'))
+web3 = new Web3(new Web3.providers.HttpProvider(`http://${process.env.BC_HOST}:${process.env.BC_PORT}`))
 var LXServiceHost = require('./build/contracts/LXServiceHost.json')
 
 //Swagger API docs
@@ -29,7 +31,7 @@ const options = {
         },
         servers:[
             {
-                url: 'http://127.0.0.1:8080/',
+                url: `http://${process.env.SERVICE_HOST}`,
                 description: 'local host test server'
             }
         ],
@@ -37,6 +39,18 @@ const options = {
     apis: ['./app.js'],
 }
 const specs = swaggerJsdoc(options)
+
+//Routing
+app.get('/', (req,res) => {
+    res.render(
+        path.join(__dirname + '/public/html/index'), 
+        {
+            api_uri: `http://${process.env.SERVICE_HOST}/api-docs`, 
+            netstats_uri:`http://${process.env.MONITOR_HOST}:3000`, 
+            explorer_uri:`http://${process.env.MONITOR_HOST}:3001`
+        });
+    // res.sendFile(path.join(__dirname + '/public/html/index.pug'))
+})
 app.use('/api-docs', swaggerUI.serve, swaggerUI.setup(specs))
 
 //Global fields
@@ -48,8 +62,8 @@ var admin;
 server.listen(app.get('port'), async () => {
     console.log('Express Server Started');
     accounts = await web3.eth.getAccounts()
-    console.log(`first account: ${accounts[0]}`);
-    admin = accounts[0];
+    console.log(`contract owner: ${accounts[1]}`);
+    admin = accounts[1];
     const networkId = await web3.eth.net.getId()
     const networkData = LXServiceHost.networks[networkId]
     if(networkData) {
@@ -59,11 +73,6 @@ server.listen(app.get('port'), async () => {
     } else {
         console.log('LXServiceHost SC is not deployed on this network')
     }
-})
-
-//Routing
-app.get('/', (req,res) => {
-    res.sendFile(path.join(__dirname + '/public/html/index.html'))
 })
 
 /**
