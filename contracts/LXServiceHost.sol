@@ -170,9 +170,13 @@ contract LXServiceHost {
         //만약 파라미터로 넘어온 값이 없을 시 기존값을 저장함
         if (keccak256(bytes(_myGeonick)) == keccak256(bytes(""))) {
             _myGeonick = residences[_residenceNum].myGeonick;
+        } else {
+            uniqueMyGeonick[_myGeonick] = true;
         }
         if (keccak256(bytes(_gs1)) == keccak256(bytes(""))) {
             _gs1 = residences[_residenceNum].gs1;
+        } else {
+            uniqueGS1Code[_gs1] = true;
         }
         if (keccak256(bytes(_streetAddress)) == keccak256(bytes(""))) {
             _streetAddress = residences[_residenceNum].streetAddress;

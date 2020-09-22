@@ -18,6 +18,7 @@ var LXServiceHost = require('./build/contracts/LXServiceHost.json')
 const swaggerJsdoc = require('swagger-jsdoc')
 const swaggerUI = require('swagger-ui-express');
 const e = require('express');
+const { json } = require('body-parser');
 const options = {
     swaggerDefinition:{
         info:{
@@ -144,41 +145,74 @@ app.post('/api/members', async (req,res) => {
         //--! 매번 새로운 계정을 만들어 추가하는 방식 시도 
         //--! 기존의 이미 존재하는 계정을 반환하지 않는 알고리즘 연구 필요
         var newAccount = await web3.eth.accounts.create()
-        contract.methods.registerMember(newAccount.address,req.body.memberPk).send({from:admin, gas:1000000})
-            .on('receipt', (receipt) => {
-                console.log('success: registerMember')
-                res.json({
-                    'result':receipt.status,
-                    'primaryKey':receipt.events.RegisterMember.returnValues[1],
-                    'memberAddr':receipt.events.RegisterMember.returnValues[0],
-                    'privateKey':newAccount.privateKey,
-                    'currentBlock':receipt.events.RegisterMember.returnValues[2],
+        let tx_abi = contract.methods.registerMember(newAccount.address,req.body.memberPk).encodeABI();
+        let tx_obj = {
+            gas: 1000000,
+            data: tx_abi,
+            from: admin,
+            to: contract.options.address
+        }
+        web3.eth.accounts.signTransaction(tx_obj, process.env.OWNER_PRIVATE, (err_sign, signedTx) => {
+            if(err_sign) {
+                console.log(`fail to sign Tx: ${err_sign}`)
+                res.status(403).json({
+                    'result':false,
                     'status':{
-                        'code':200,
-                        'message':'OK'
+                        'code':403,
+                        'message':`fail to sign: ${err_sign}`
                     }
                 })
-            })
-            .on('error', () => {
-                contract.methods.registerMember(newAccount.address,req.body.memberPk)
-                    .call({from: admin}, (err, _) => {
-                        console.log(`fail: registerMember, ${err}`)
-                        res.json({
-                            'result':false,
-                            'status':{
-                                'code':403,
-                                'message':`${err}`
+            } else {
+                web3.eth.sendSignedTransaction(signedTx.rawTransaction)
+                    .on('receipt', (receipt) => {
+                        contract.getPastEvents('RegisterMember', {
+                            filter: {_memberNum: req.body.memberPk},
+                            fromBlock: receipt.blockNumber
+                        }, (err_event, event) => {
+                            if(err_event) {
+                                console.log(`fail to find event: ${err_event}`)
+                                res.status(403).json({
+                                    'result':false,
+                                    'status':{
+                                        'code':403,
+                                        'message':`event not found: ${err_event}`
+                                    }
+                                })
+                            } else {
+                                console.log('success: registerMember')
+                                res.json({
+                                    'result':receipt.status,
+                                    'primaryKey':event[0].returnValues[1],
+                                    'memberAddr':event[0].returnValues[0],
+                                    'privateKey':newAccount.privateKey,
+                                    'currentBlock':receipt.blockNumber,
+                                    'status':{
+                                        'code':200,
+                                        'message':'OK'
+                                    }
+                                })
                             }
                         })
                     })
-            })
+                    .on('error', (err_send) => {
+                        console.log(`fail to send Tx: ${err_send}`)
+                        res.status(403).json({
+                            'result':false,
+                            'status':{
+                                'code':403,
+                                'message':`fail to send Tx: ${err_send}`
+                            }
+                        })
+                    })
+            }
+        })
     } catch(err) {
         console.log(`fail: asyncAction, ${err}`)
         res.status(403).json({
             'result':false,
             'status':{
                 'code':403,
-                'message':`${err}`
+                'message':`async error: ${err}`
             }
         })
     }
@@ -248,32 +282,65 @@ app.post('/api/members', async (req,res) => {
  *                                default: "Error Message"
  */
 app.delete('/api/members', (req,res) => {
-    contract.methods.deregisterMember(req.body.memberAddr,req.body.memberPk).send({from:admin, gas:1000000})
-    .on('receipt', (receipt) => {
-        console.log('success: deregisterMember')
-        res.json({
-            'result':receipt.status,
-            'primaryKey':receipt.events.DeregisterMember.returnValues[1],
-            'memberAddr':receipt.events.DeregisterMember.returnValues[0],
-            'currentBlock':receipt.events.DeregisterMember.returnValues[2],
-            'status':{
-                'code':200,
-                'message':'OK'
-            }
-        })
-    })
-    .on('error', () => {
-        contract.methods.deregisterMember(req.body.memberAddr,req.body.memberPk)
-            .call({from:admin}, (err, _) => {
-                console.log(`fail: registerMember, ${err}`)
-                res.status(403).json({
-                    'result':false,
-                    'status':{
-                        'code':403,
-                        'message':`${err}`
-                    }
-                })
+    let tx_abi = contract.methods.deregisterMember(req.body.memberAddr,req.body.memberPk).encodeABI();
+    let tx_obj = {
+        gas: 1000000,
+        data: tx_abi,
+        from: admin,
+        to: contract.options.address
+    }
+    web3.eth.accounts.signTransaction(tx_obj, process.env.OWNER_PRIVATE, (err_sign, signedTx) => {
+        if(err_sign) {
+            console.log(`fail to sign Tx, ${err_sign}`)
+            res.status(403).json({
+                'result':false,
+                'status':{
+                    'code':403,
+                    'message':`Fail to sing Tx: ${err_sign}`
+                }
             })
+        } else {
+            web3.eth.sendSignedTransaction(signedTx.rawTransaction)
+                .on('receipt', (receipt) => {
+                    contract.getPastEvents('DeregisterMember', {
+                        filter: {_memberNum: req.body.memberPk},
+                        fromBlock: receipt.blockNumber
+                    }, (err_event, event) => {
+                        if(err_event) {
+                            console.log(`fail to find event, ${err_event}`)
+                            res.status(403).json({
+                                'result':false,
+                                'status':{
+                                    'code':403,
+                                    'message':`Fail to find event: ${err_event}`
+                                }
+                            })
+                        } else {
+                            console.log('success: deregisterMember')
+                            res.json({
+                                'result':receipt.status,
+                                'primaryKey':event[0].returnValues[1],
+                                'memberAddr':event[0].returnValues[0],
+                                'currentBlock':event[0].returnValues[2],
+                                'status':{
+                                    'code':200,
+                                    'message':'OK'
+                                }
+                            })
+                        }
+                    })
+                })
+                .on('error', (err_send) => {
+                    console.log(`fail to send Tx ${err_send}`)
+                    res.status(403).json({
+                        'result':false,
+                        'status':{
+                            'code':403,
+                            'message':`fail to send Tx: ${err_send}`
+                        }
+                    })
+                })
+        }
     })
 })
 
@@ -357,39 +424,73 @@ app.delete('/api/members', (req,res) => {
  *                                default: "Error Message"
  */
 app.post('/api/residences', (req,res) => {
-    contract.methods.registerResidence(req.body.memberAddr, req.body.residenceNum, req.body.myGeonick, req.body.gs1, req.body.streetAddr, req.body.gridAddr)
-        .send({from: admin, gas:1000000})
-        .on('receipt',(receipt) => {
-            console.log('success: registerResidence')
-            res.json({
-                'result':receipt.status,
-                'memberAddr':receipt.events.ChangeResidence.returnValues[0],
-                'residenceNum':receipt.events.ChangeResidence.returnValues[1],
-                'currentBlock':receipt.events.ChangeResidence.returnValues[2],
-                'previousBlock':receipt.events.ChangeResidence.returnValues[3],
-                'myGeonick':receipt.events.ChangeResidence.returnValues[4],
-                'gs1':receipt.events.ChangeResidence.returnValues[5],
-                'streetAddr':receipt.events.ChangeResidence.returnValues[6],
-                'gridAddr':receipt.events.ChangeResidence.returnValues[7],
+    let tx_abi = contract.methods.registerResidence(req.body.memberAddr, req.body.residenceNum, req.body.myGeonick, req.body.gs1, req.body.streetAddr, req.body.gridAddr).encodeABI()
+    let tx_obj = {
+        gas: 1000000,
+        data: tx_abi,
+        from: admin,
+        to: contract.options.address
+    }
+    web3.eth.accounts.signTransaction(tx_obj, process.env.OWNER_PRIVATE, (err_sign, signedTx) => {
+        if(err_sign) {
+            console.log(`fail to sign Tx: ${err_sign}`)
+            res.status(403).json({
+                'result':false,
                 'status':{
-                    'code':200,
-                    'message':'OK'
+                    'code':403,
+                    'message':`fail to sign: ${err_sign}`
                 }
             })
-        })
-        .on('error', () => {
-            contract.methods.registerResidence(req.body.memberAddr, req.body.residenceNum, req.body.myGeonick, req.body.gs1, req.body.streetAddr, req.body.gridAddr)
-                .call({from: admin}, (err, _) => {
-                    console.log(`fail: registerResidence, ${err}`)
+        } else {
+            web3.eth.sendSignedTransaction(signedTx.rawTransaction)
+
+                .on('receipt', (receipt) => {
+                    console.log(`receipt status: ${receipt.status}`)
+                    contract.getPastEvents('ChangeResidence', {
+                        filter: {_residenceNum: req.body.residenceNum},
+                        fromBlock: receipt.blockNumber
+                    }, (err_event, event) => {
+                        if(err_event) {
+                            console.log(`fail to find event: ${err_event}`)
+                            res.status(403).json({
+                                'result':false,
+                                'status':{
+                                    'code':403,
+                                    'message':`fail to find event: ${err_event}`
+                                }
+                            })
+                        } else {
+                            console.log('success: registerResidence')
+                            res.json({
+                                'result':receipt.status,
+                                'memberAddr':event[0].returnValues[0],
+                                'residenceNum':event[0].returnValues[1],
+                                'currentBlock':event[0].returnValues[2],
+                                'previousBlock':event[0].returnValues[3],
+                                'myGeonick':event[0].returnValues[4],
+                                'gs1':event[0].returnValues[5],
+                                'streetAddr':event[0].returnValues[6],
+                                'gridAddr':event[0].returnValues[7],
+                                'status':{
+                                    'code':200,
+                                    'message':'OK'
+                                }
+                            })
+                        }
+                    })
+                })
+                .on('error', (err_send) => {
+                    console.log(`fail to send Tx: ${err_send}`)
                     res.status(403).json({
                         'result':false,
                         'status':{
                             'code':403,
-                            'message':`${err}`
+                            'message':`fail to send Tx ${err_send}`
                         }
                     })
                 })
-        })
+        }
+    })
 })
 
 /**
@@ -474,38 +575,70 @@ app.post('/api/residences', (req,res) => {
  *                                default: "Error Message"
  */
 app.patch('/api/residences/:residenceNum', (req,res) => {
-    contract.methods.updateResidence(req.body.memberAddr, req.params.residenceNum, req.body.myGeonick, req.body.gs1, req.body.streetAddr, req.body.gridAddr)
-    .send({from: admin, gas:1000000})
-    .on('receipt',(receipt) => {
-        console.log('success: updateResidence')
-        res.json({
-            'result':receipt.status,
-            'memberAddr':receipt.events.ChangeResidence.returnValues[0],
-            'residenceNum':receipt.events.ChangeResidence.returnValues[1],
-            'currentBlock':receipt.events.ChangeResidence.returnValues[2],
-            'previousBlock':receipt.events.ChangeResidence.returnValues[3],
-            'myGeonick':receipt.events.ChangeResidence.returnValues[4],
-            'gs1':receipt.events.ChangeResidence.returnValues[5],
-            'streetAddr':receipt.events.ChangeResidence.returnValues[6],
-            'gridAddr':receipt.events.ChangeResidence.returnValues[7],
-            'status':{
-                'code':200,
-                'message':'OK'
-            }
-        })
-    })
-    .on('error', () => {
-        contract.methods.updateResidence(req.body.memberAddr, req.params.residenceNum, req.body.myGeonick, req.body.gs1, req.body.streetAddr, req.body.gridAddr)
-            .call({from: admin}, (err,_) => {
-                console.log(`fail: updateResidence, ${err}`)
-                res.status(403).json({
-                    'result':false,
-                    'status':{
-                        'code':403,
-                        'message':`${err}`
-                    }
-                })
+    let tx_abi = contract.methods.updateResidence(req.body.memberAddr, req.params.residenceNum, req.body.myGeonick, req.body.gs1, req.body.streetAddr, req.body.gridAddr).encodeABI()
+    let tx_obj = {
+        gas: 1000000,
+        data: tx_abi,
+        from: admin,
+        to: contract.options.address
+    }
+    web3.eth.accounts.signTransaction(tx_obj, process.env.OWNER_PRIVATE, (err_sign, signedTx) => {
+        if(err_sign) {
+            console.log(`fail to sign Tx: ${err_sign}`)
+            res.status(403).json({
+                'result':false,
+                'status':{
+                    'code':403,
+                    'message':`fail to sign Tx: ${err_sign}`
+                }
             })
+        } else {
+            web3.eth.sendSignedTransaction(signedTx.rawTransaction)
+                .on('receipt', (receipt) => {
+                    contract.getPastEvents('ChangeResidence', {
+                        filter: {_residenceNum: req.body.residenceNum},
+                        fromBlock: receipt.blockNumber
+                    }, (err_event, event) => {
+                        if(err_event) {
+                            console.log(`fail to find event: ${err_event}`)
+                            res.status(403).json({
+                                'result':false,
+                                'status':{
+                                    'code':403,
+                                    'message':`fail to find event: ${err_event}`
+                                }
+                            })
+                        } else {
+                            console.log('success: updateResidence')
+                            res.json({
+                                'result':receipt.status,
+                                'memberAddr':event[0].returnValues[0],
+                                'residenceNum':event[0].returnValues[1],
+                                'currentBlock':event[0].returnValues[2],
+                                'previousBlock':event[0].returnValues[3],
+                                'myGeonick':event[0].returnValues[4],
+                                'gs1':event[0].returnValues[5],
+                                'streetAddr':event[0].returnValues[6],
+                                'gridAddr':event[0].returnValues[7],
+                                'status':{
+                                    'code':200,
+                                    'message':'OK'
+                                }
+                            })
+                        }
+                    })
+                })
+                .on('error', (err_send) => {
+                    console.log(`fail to send Tx: ${err_send}`)
+                    res.status(403).json({
+                        'result':false,
+                        'status':{
+                            'code':403,
+                            'message':`fail to send Tx: ${err_send}`
+                        }
+                    })
+                })
+        }
     })
 })
 
@@ -583,39 +716,71 @@ app.patch('/api/residences/:residenceNum', (req,res) => {
  *                                default: "Error Message"
  */
 app.delete('/api/residences/:residenceNum', (req,res) => {
-    contract.methods.deleteResidence(req.body.memberAddr, req.params.residenceNum)
-        .send({from: admin, gas:1000000})
-        .on('receipt',(receipt) => {
-            console.log('success: deleteResidence')
-            res.json({
-                'result':receipt.status,
-                'memberAddr':receipt.events.DeleteResidence.returnValues[0],
-                'residenceNum':receipt.events.DeleteResidence.returnValues[1],
-                'currentBlock':receipt.events.DeleteResidence.returnValues[2],
-                'previousBlock':receipt.events.DeleteResidence.returnValues[3],
-                'myGeonick':receipt.events.DeleteResidence.returnValues[4],
-                'gs1':receipt.events.DeleteResidence.returnValues[5],
-                'streetAddr':receipt.events.DeleteResidence.returnValues[6],
-                'gridAddr':receipt.events.DeleteResidence.returnValues[7],
+    let tx_abi = contract.methods.deleteResidence(req.body.memberAddr, req.params.residenceNum).encodeABI()
+    let tx_obj = {
+        gas: 1000000,
+        data: tx_abi,
+        from: admin,
+        to: contract.options.address
+    }
+    web3.eth.accounts.signTransaction(tx_obj, process.env.OWNER_PRIVATE, (err_sign, signedTx) => {
+        if(err_sign) {
+            console.log(`fail to sign Tx: ${err_sign}`)
+            res.status(403).json({
+                'result':false,
                 'status':{
-                    'code':200,
-                    'message':'OK'
+                    'code':403,
+                    'message':`fail to sign Tx: ${err_sign}`
                 }
             })
-        })
-        .on('error', () => {
-            contract.methods.deleteResidence(req.body.memberAddr, req.params.residenceNum)
-                .call({from: admin}, (err,_) => {
-                    console.log(`fail: deleteResidence, ${err}`)
+        } else {
+            web3.eth.sendSignedTransaction(signedTx.rawTransaction)
+                .on('receipt', (receipt) => {
+                    contract.getPastEvents('DeleteResidence', {
+                        filter: {_residenceNum: req.body.residenceNum},
+                        fromBlock: receipt.blockNumber
+                    }, (err_event, event) => {
+                        if(err_event) {
+                            console.log(`fail to find event: ${err_event}`)
+                            res.status(403).json({
+                                'result':false,
+                                'status':{
+                                    'code':403,
+                                    'message':`fail to find event: ${err_event}`
+                                }
+                            })
+                        } else {
+                            console.log('success: deleteResidence')
+                            res.json({
+                                'result':receipt.status,
+                                'memberAddr':event[0].returnValues[0],
+                                'residenceNum':event[0].returnValues[1],
+                                'currentBlock':event[0].returnValues[2],
+                                'previousBlock':event[0].returnValues[3],
+                                'myGeonick':event[0].returnValues[4],
+                                'gs1':event[0].returnValues[5],
+                                'streetAddr':event[0].returnValues[6],
+                                'gridAddr':event[0].returnValues[7],
+                                'status':{
+                                    'code':200,
+                                    'message':'OK'
+                                }
+                            })
+                        }
+                    })
+                })
+                .on('error', (err_send) => {
+                    console.log(`fail to send Tx: ${err_send}`)
                     res.status(403).json({
                         'result':false,
                         'status':{
                             'code':403,
-                            'message':`${err}`
+                            'message':`fail to send Tx: ${err_send}`
                         }
                     })
                 })
-        })
+        }
+    })
 })
 
 /**
@@ -691,36 +856,68 @@ app.delete('/api/residences/:residenceNum', (req,res) => {
  *                                default: "Error Message"
  */
 app.post('/api/residences/:residenceNum/usage-consent', (req,res) => {
-    contract.methods.allowAccessTo(req.body.memberAddr, req.body.requestAddr, req.params.residenceNum, req.body.approvalStat)
-        .send({from: admin, gas:1000000})
-        .on('receipt',(receipt) => {
-            console.log('success: allowAccess')
-            res.json({
-                'result':receipt.status,
-                'memberAddr':receipt.events.PreConsentTo.returnValues[0],
-                'requestAddr':receipt.events.PreConsentTo.returnValues[1],
-                'currentBlock':receipt.events.PreConsentTo.returnValues[2],
-                'residenceNum':receipt.events.PreConsentTo.returnValues[3],
-                'approvalStat':receipt.events.PreConsentTo.returnValues[4],
+    let tx_abi = contract.methods.allowAccessTo(req.body.memberAddr, req.body.requestAddr, req.params.residenceNum, req.body.approvalStat).encodeABI()
+    let tx_obj = {
+        gas: 1000000,
+        data: tx_abi,
+        from:admin,
+        to: contract.options.address
+    }
+    web3.eth.accounts.signTransaction(tx_obj, process.env.OWNER_PRIVATE, (err_sign, signedTx) => {
+        if(err_sign) {
+            console.log(`fail to sign Tx: ${err_sign}`)
+            res.status(403).json({
+                'result':false,
                 'status':{
-                    'code':200,
-                    'message':'OK'
+                    'code':403,
+                    'message':`fail to sign Tx: ${err_sign}`
                 }
             })
-        })
-        .on('error', () => {
-            contract.methods.allowAccessTo(req.body.memberAddr, req.body.requestAddr, req.params.residenceNum, req.body.approvalStat)
-                .call({from: admin}, (err, _) => {
-                    console.log(`fail: allowAccess, ${err}`)
+        } else {
+            web3.eth.sendSignedTransaction(signedTx.rawTransaction)
+                .on('receipt', (receipt) => {
+                    contract.getPastEvents('PreConsentTo', {
+                        filter: {_residenceNum:req.params.residenceNum},
+                        fromBlock: receipt.blockNumber
+                    }, (err_event, event) => {
+                        if(err_event) {
+                            console.log(`fail to find event: ${err_event}`)
+                            res.status(403).json({
+                                'result':false,
+                                'status': {
+                                    'code':403,
+                                    'message':`fail to find event: ${err_event}`
+                                }
+                            })
+                        } else {
+                            console.log('success: allowAccess')
+                            res.json({
+                                'result':receipt.status,
+                                'memberAddr':event[0].returnValues[0],
+                                'requestAddr':event[0].returnValues[1],
+                                'currentBlock':event[0].returnValues[2],
+                                'residenceNum':event[0].returnValues[3],
+                                'approvalStat':event[0].returnValues[4],
+                                'status':{
+                                    'code':200,
+                                    'message':'OK'
+                                }
+                            })
+                        }
+                    })
+                })
+                .on('error', (err_send) => {
+                    console.log(`fail to send Tx: ${err_send}`)
                     res.status(403).json({
                         'result':false,
                         'status':{
                             'code':403,
-                            'message':`${err}`
+                            'message':`fail to send Tx: ${err_send}`
                         }
                     })
                 })
-        })
+        }
+    })
 })
 
 //--! SC의 require처럼 함수 호출자에 대한 제한이 없어서 추가로 보안성을 구현해야 하는가?
@@ -990,11 +1187,41 @@ app.get('/api/residences/:residenceNum/history', (req,res) => {
  *                                type: string
  *                                default: "Error Message"
  */
-app.get('/api/residences', (req,res) => {
+app.get('/api/residences', (req,res) => { 
     contract.methods.getResidence(req.query.reqFrom, req.query.residenceNum).call({from: admin}, (err, result) => {
         if(result) {
             console.log(`success: getResidence`)
-            contract.methods.getResidence(req.query.reqFrom, req.query.residenceNum).send({from: admin, gas:1000000})
+            let tx_abi = contract.methods.getResidence(req.query.reqFrom, req.query.residenceNum).encodeABI()
+            let tx_obj = {
+                gas: 1000000,
+                data: tx_abi,
+                from: admin,
+                to: contract.options.address
+            }
+            web3.eth.accounts.signTransaction(tx_obj, process.env.OWNER_PRIVATE, (err_sign, signedTx) => {
+                if(err_sign) {
+                    console.log(`fail to sign Tx: ${err_sign}`)
+                    res.status(403).json({
+                        'result':false,
+                        'status':{
+                            'code':403,
+                            'message':`fail to sign Tx: ${err_sign}`
+                        }
+                    })
+                } else {
+                    web3.eth.sendSignedTransaction(signedTx.rawTransaction)
+                        .on('error', (err_send) => {
+                            console.log(`fail to send Tx: ${err_send}`)
+                            res.status(403).json({
+                                'result':false,
+                                'status':{
+                                    'code':403,
+                                    'message':`fail to send Tx: ${err_send}`
+                                }
+                            })
+                        })
+                }
+            })
             res.json({
                 'result':result[0],
                 'myGeonick':result[1],
@@ -1086,7 +1313,37 @@ app.get('/api/residences/real-time', (req,res) => {
     contract.methods.getRealtimeConsent(req.query.reqFrom, req.query.residenceNum).call({from: admin}, (err, result) => {
         if(result) {
             console.log(`success: getResidence real-time`)
-            contract.methods.getRealtimeConsent(req.query.reqFrom, req.query.residenceNum).send({from: admin, gas:1000000})
+            let tx_abi = contract.methods.getRealtimeConsent(req.query.reqFrom, req.query.residenceNum).encodeABI()
+            let tx_obj = {
+                gas: 1000000,
+                data: tx_abi,
+                from: admin,
+                to: contract.options.address
+            }
+            web3.eth.accounts.signTransaction(tx_obj, process.env.OWNER_PRIVATE, (err_sign, signedTx) => {
+                if(err_sign) {
+                    console.log(`fail to sign Tx: ${err_sign}`)
+                    res.status(403).json({
+                        'result':false,
+                        'status':{
+                            'code':403,
+                            'message':`fail to sign Tx: ${err_sign}`
+                        }
+                    })
+                } else {
+                    web3.eth.sendSignedTransaction(signedTx.rawTransaction)
+                        .on('error', (err_send) => {
+                            console.log(`fail to send Tx: ${err_send}`)
+                            res.status(403).json({
+                                'result':false,
+                                'status':{
+                                    'code':403,
+                                    'message':`fail to send Tx: ${err_send}`
+                                }
+                            })
+                        })
+                }
+            })
             res.json({
                 'result':result[0],
                 'myGeonick':result[1],
@@ -1325,28 +1582,47 @@ app.get('/api/residences/list', (req,res) => {
  *                                default: "Error Message"
  */
 app.post('/api/system/freemygeonick', (req,res) => {
-    contract.methods.freeMyGeonick(req.body.myGeonick, req.body.gs1).send({from: admin, gas:1000000})
-        .on('receipt', (receipt) => {
-            res.json({
-                'result':receipt.status,
+    let tx_abi = contract.methods.freeMyGeonick(req.body.myGeonick, req.body.gs1).encodeABI()
+    let tx_obj = {
+        gas: 1000000,
+        data: tx_abi,
+        from: admin,
+        to: contract.options.address
+    }
+    web3.eth.accounts.signTransaction(tx_obj, process.env.OWNER_PRIVATE, (err_sign, signedTx) => {
+        if(err_sign) {
+            console.log(`fail to sign Tx: ${err_sign}`)
+            res.status(403).json({
+                'result':false,
                 'status':{
-                    'code':200,
-                    'message':'OK'
+                    'code':403,
+                    'message':`fail to sign Tx: ${err_sign}`
                 }
             })
-        })
-        .on('error', () => {
-            contract.methods.freeMyGeonick(req.body.myGeonick, req.body.gs1)
-                .call({from: admin}, (err, _) => {
-                    res.status(403).json({
-                        'result':false, 
+        } else {
+            web3.eth.sendSignedTransaction(signedTx.rawTransaction)
+                .on('receipt', (receipt) => {
+                    console.log(`success: freeMyGeonick`)
+                    res.json({
+                        'result':receipt.status,
                         'status':{
-                            'code':403,
-                            'message':`${err}`
+                            'code':200,
+                            'message':'OK'
                         }
                     })
                 })
-        })
+                .on('error', (err_send) => {
+                    console.log(`fail to send Tx: ${err_send}`)
+                    res.status(403).json({
+                        'result':false,
+                        'status':{
+                            'code':403,
+                            'message':`fail to send Tx: ${err_send}`
+                        }
+                    })
+                })
+        }
+    })
 })
 /**
  * 모든 회원등록, 탈퇴관련 이벤트 조회

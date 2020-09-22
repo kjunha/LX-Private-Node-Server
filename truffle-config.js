@@ -46,7 +46,7 @@ module.exports = {
     development: {
      host: process.env.BC_HOST,     // Localhost (default: none)
      port: process.env.BC_PORT,            // Standard Ethereum port (default: none)
-     from: process.env.CONTRACT_OWNER,
+     from: process.env.CONTRACT_TESTER,
      network_id: "*",       // Any network (default: none)
     },
 
