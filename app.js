@@ -3,9 +3,11 @@ var express = require('express')
 var http = require('http')
 var bodyParser = require('body-parser')
 var path = require('path');
+var cors = require('cors');
 var app = express();
 app.use(bodyParser.urlencoded({extended:false}))
 app.use(bodyParser.json())
+app.use(cors())
 app.set('port', process.env.SERVICE_PORT)
 app.set('view engine', 'pug')
 var server = http.createServer(app)
@@ -1621,6 +1623,48 @@ app.post('/api/system/freemygeonick', (req,res) => {
                         }
                     })
                 })
+        }
+    })
+})
+/**
+ * 컨트랙트 관련 정보 조회
+ * @swagger
+ * /api/system/contract-info:
+ *      get:
+ *          description: 컨트랙트 주소, 배포자 주소, 어드민 주소를 반환.
+ *          tags:
+ *              - system
+ *          responses:
+ *              200:
+ *                description: 컨트랙트 주소, 배포자 주소, 어드민 주소를 반환.
+ *                schema:
+ *                  type: object
+ *                  properties:
+ *                      contractAddr:
+ *                          type: string
+ *                      deployerAddr:
+ *                          type: string
+ *                      adminAddr:
+ *                          type: string
+ *                      status:
+ *                          type: object
+ *                          properties:
+ *                              code:
+ *                                  type: integer
+ *                                  default: 200
+ *                              message:
+ *                                  type: string
+ *                                  default: OK
+ */
+app.get('/api/system/contract-info', (req,res) => {
+    console.log(`contract: ${contract.options.address}`)
+    res.json({
+        'contractAddr': contract.options.address,
+        'deployerAddr': process.env.CONTRACT_OWNER,
+        'adminAddr': admin,
+        'status':{
+            'code':200,
+            'message':'OK'
         }
     })
 })
